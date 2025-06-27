@@ -1,4 +1,3 @@
-// src/hooks/useHandleLoginRedirect.ts
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -46,5 +45,3 @@ export function useHandleLoginRedirect() {
 
   return { redirect };
 }
-
-

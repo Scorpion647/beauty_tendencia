@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Accessmodal from "./components/accessmodal";
 import { cursiva, oswald } from "@/app/components/fonts"
 import { loginWithEmail } from "@/lib/auth"
-import { useHandleLoginRedirect} from "@/app/access/route"
+import { useHandleLoginRedirect} from "@/hooks/useHandleLoginRedirect"
 
 
 

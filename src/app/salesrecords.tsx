@@ -284,50 +284,152 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, a
 
 type FilterOption = "Dia" | "Semana" | "Mes";
 export const Sales_records = () => {
+  const { user, loading: loading2 } = useUser();
+
   const [data, setData] = useState<UserSalesData[]>([]);
   const [loanRecords, setloanRecords] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isOpen2, setIsOpen2] = useState(false);
   const [s_items, sets_items] = useState<SalesRecord>();
-  const openModal = () => setIsOpen(true);
-  const openModal2 = () => setIsOpen2(true);
   const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
-  const closeModal = () => setIsOpen(false);
-  const closeModal2 = () => setIsOpen2(false);
-  const { user, loading: loading2 } = useUser(); // Aquí obtienes el user directamente
-  const [selectedOption, setSelectedOption] = useState<FilterOption>("Dia");
+  const [selectedOption, setSelectedOption] = useState<FilterOption>('Dia');
   const todayBogota = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(todayBogota);
   const [Deudatotal, setDeudatotal] = useState(0);
-  const [IDusersave, setIDusersave] = useState<string>("");
-  const [processedLoans, setProcessedLoans] = useState<
-    { user_id: string | number; monto: number }[]
-  >([]);
-
-
-if (loading2) {
-    return <div>Cargando...</div>;
-  }
-
-
-
-
-  // 👉 Estos hooks deben declararse siempre, independientemente del estado.
+  const [IDusersave, setIDusersave] = useState<string>('');
+  const [processedLoans, setProcessedLoans] = useState<{ user_id: string | number; monto: number }[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [barSize, setBarSize] = useState(20);
+  const [selectedEmployee, setSelectedEmployee] = useState<UserSalesData | null>(null);
+  const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
+  const [activeButton, setActiveButton] = useState<string>('Empleados');
 
-  const [selectedEmployee, setSelectedEmployee] = useState<{
-    name: string;
-    total: number;
-    Ganado: number;
-    sales_records: any[];
-  } | null>(null);
+  const openModal = () => setIsOpen(true);
+  const openModal2 = () => setIsOpen2(true);
+  const closeModal = () => setIsOpen(false);
+  const closeModal2 = () => setIsOpen2(false);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      await handleFilter();
+      await handleFilterloans();
+      setLoading(false);
+    };
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    listUsers(1, 100)
+      .then((data) => {
+        const empleadosFormateados = data.map((user) => {
+          const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
+          const inicialesApellidos = user.apellidos
+            .split(' ')
+            .filter((palabra: string) => palabra.trim() !== '')
+            .map((palabra: string) => palabra.charAt(0).toUpperCase())
+            .join('.') + '.';
+
+          return {
+            label: `${nombre} ${inicialesApellidos}`,
+            value: `${nombre} ${user.apellidos}`,
+            id: user.id,
+          };
+        });
+
+        setEmpleados(empleadosFormateados);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const userId = values2.length > 0 ? values2[0].id : undefined;
+    const date = selectedDate || todayBogota;
+    const filtro = selectedOption;
+
+    const fetchLoans = async () => {
+      try {
+        const id = user?.userProfile?.rol === 'admin' ? userId : user?.userProfile?.id;
+        const loans = await getLoanRecords(id, date, filtro);
+        setloanRecords(loans);
+        setDeudatotal(calcularBalancePrestamos(loans, user, selectedEmployee, id || ''));
+      } catch (err) {
+        console.error('Error al obtener préstamos:', err);
+      }
+    };
+    fetchLoans();
+  }, []);
+
+  useEffect(() => {
+    const map = new Map<string | number, { totalPrestamos: number; totalAbonos: number }>();
+
+    loanRecords.forEach(({ user_id, monto, tipo_operacion }) => {
+      const entry = map.get(user_id) ?? { totalPrestamos: 0, totalAbonos: 0 };
+      tipo_operacion === 'prestamo' ? entry.totalPrestamos += monto : entry.totalAbonos += monto;
+      map.set(user_id, entry);
+    });
+
+    const result = Array.from(map.entries()).map(([user_id, { totalPrestamos, totalAbonos }]) => {
+      const match = empleados.find(e => e.id === String(user_id));
+      return {
+        user_id: match ? match.value : user_id,
+        monto: totalPrestamos - totalAbonos,
+      };
+    });
+
+    setProcessedLoans(result);
+  }, [loanRecords, empleados]);
+
+  useEffect(() => {
+    const width = containerRef.current?.offsetWidth ?? 0;
+    const totalBars = data.length;
+    const newBarSize = Math.max(Math.min((width / totalBars) * 0.6, 80), 10);
+    setBarSize(newBarSize);
+  }, [data]);
+
+  const handleFilter = async (id?: string) => {
+    if (!selectedDate || !selectedOption) return;
+
+    let filterType: any = 'today';
+    let options: any = {};
+
+    if (selectedOption === 'Dia') {
+      filterType = 'specific_day';
+      options = { day: selectedDate };
+    } else if (selectedOption === 'Semana') {
+      const dateObj = new Date(selectedDate);
+      filterType = 'specific_week';
+      options = { week: getWeekNumber(dateObj), year: dateObj.getFullYear() };
+    } else if (selectedOption === 'Mes') {
+      const dateObj = new Date(selectedDate);
+      filterType = 'specific_month';
+      options = { month: dateObj.getMonth() + 1, year: dateObj.getFullYear() };
+    }
+
+    try {
+      const uid = user?.userProfile?.rol !== 'admin' ? user?.userProfile?.id : id || IDusersave || undefined;
+      const summary = await listSalesSummary(filterType, options, uid);
+      setData(summary);
+      closeModal2();
+    } catch (error) {
+      console.error('Error al filtrar:', error);
+    }
+  };
+
+  const handleFilterloans = async () => {
+    try {
+      const uid = values2.length > 0 ? values2[0].id : undefined;
+      const date = selectedDate;
+      const filtro = selectedOption;
+      const data = await getLoanRecords(uid, date, filtro);
+      setloanRecords(data);
+      setDeudatotal(calcularBalancePrestamos(data, user, selectedEmployee, user?.userProfile?.id || ''));
+    } catch (error) {
+      console.error('Error al aplicar el filtro:', error);
+    }
+  };
 
   const handleBarClick = (data: any) => {
-    console.log(`Empleado: ${data.name} | Total: ${data.total} | Ganado: ${data.Ganado}`);
-    console.log('Ventas:', data.sales_records);
-
     setSelectedEmployee({
       name: data.name,
       total: data.total,
@@ -335,247 +437,21 @@ if (loading2) {
       sales_records: data.sales_records,
     });
   };
-  const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
 
+  if (loading || loading2) return <div>Cargando...</div>;
 
-  const handleFilter = async (id?: string) => {
-    if (!selectedDate || !selectedOption) {
-      alert("Debes seleccionar una fecha y una opción.");
-      return;
-    }
-
-    let filterType: "today" | "specific_day" | "specific_week" | "specific_month" | "current_week" | "current_month" = "today";
-    let options: any = {};
-
-    if (selectedOption === "Dia") {
-      filterType = "specific_day";
-      options = { day: selectedDate };
-    } else if (selectedOption === "Semana") {
-      const dateObj = new Date(selectedDate);
-      const week = getWeekNumber(dateObj);
-      const year = dateObj.getFullYear();
-
-      filterType = "specific_week";
-      options = { week, year };
-    } else if (selectedOption === "Mes") {
-      const dateObj = new Date(selectedDate);
-      const month = dateObj.getMonth() + 1;
-      const year = dateObj.getFullYear();
-
-      filterType = "specific_month";
-      options = { month, year };
-    }
-    console.log(filterType)
-    console.log(IDusersave)
-    try {
-      const summary = await listSalesSummary(filterType, options, (user?.userProfile?.rol !== "admin" ? user?.userProfile?.id : (id !== "" ? id : undefined)));
-      console.log((user?.userProfile?.rol !== "admin" ? user?.userProfile?.id : (IDusersave !== "" ? IDusersave : undefined)))
-      setData(summary)
-      closeModal2()
-      // Aquí puedes guardar el resultado en un estado para mostrarlo
-    } catch (error) {
-      console.error("Error al filtrar:", error);
-    }
-  };
-
-  const handleFilterloans = async () => {
-    try {
-
-      const userId = values2.length > 0 ? values2[0].id : undefined;
-      const date =
-        selectedDate !== "today"
-          ? selectedDate
-          : new Date().toISOString().split('T')[0]; // Esto da 'YYYY-MM-DD' en UTC
-      const filtro: FilterOption = selectedOption;
-      console.log("date: ", date)
-      console.log("selectoption: ", filtro)
-
-
-      const data = await getLoanRecords(userId, date, filtro);
-      setloanRecords(data);
-      setDeudatotal(calcularBalancePrestamos(data, user, selectedEmployee, user?.userProfile?.id || ""))
-      console.log("data final: ", data)
-    } catch (error) {
-      console.error("Error al aplicar el filtro:", error);
-    }
-  };
-
-
-  const [activeButton, setActiveButton] = useState<string>("Empleados");
-  // Dentro del componente, antes del return:
-
-  useEffect(() => {
-
-    handleFilter()
-    handleFilterloans()
-
-  }, [])
-
-
-
-
-
-  useEffect(() => {
-    // Traer primera página con 100 usuarios
-    listUsers(1, 100)
-      .then((data) => {
-
-
-        // Aquí armamos el array de empleados con la estructura solicitada
-        const empleadosFormateados = data.map((user) => {
-          const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
-
-          const inicialesApellidos = user.apellidos
-            .split(' ')
-            .filter((palabra: string) => palabra.trim() !== '') // evita errores si hay espacios extra
-            .map((palabra: string) => palabra.charAt(0).toUpperCase())
-            .join('.') + '.';
-
-          return {
-            label: `${nombre} ${inicialesApellidos}`,
-            value: `${nombre} ${user.apellidos}`,
-            id: user.id
-          };
-        });
-
-        setEmpleados(empleadosFormateados);
-      })
-      .catch((err) => {
-        console.log(err)
-      });
-  }, []);
-
-  useEffect(() => {
-
-
-    const getloans = async () => {
-      const userId = values2.length > 0 ? values2[0].id : undefined;
-      const date =
-        selectedDate !== "today"
-          ? selectedDate
-          : new Date().toISOString().split('T')[0]; // Esto da 'YYYY-MM-DD' en UTC
-      const filtro: FilterOption = selectedOption;
-      console.log("date: ", date)
-      console.log("selectoption: ", filtro)
-      try {
-        if (user?.userProfile?.rol === "admin") {
-          const obtener = await getLoanRecords(userId, date, filtro)
-          console.log("Prestamos obtenidos:", obtener);
-          setloanRecords(obtener)
-          setDeudatotal(calcularBalancePrestamos(obtener, user, selectedEmployee, user?.userProfile?.id || ""))
-        } else {
-          const obtener = await getLoanRecords(user?.userProfile?.id, date, filtro)
-          console.log("Prestamos obtenidos:", obtener);
-          setloanRecords(obtener)
-          setDeudatotal(calcularBalancePrestamos(obtener, user, selectedEmployee, user?.userProfile?.id || ""))
-        }
-
-
-
-      } catch (err) {
-        console.error("Error al obtener préstamos:", err);
-      }
-    }
-    getloans()
-  }, [])
-
-  useEffect(() => {
-    // 1) Agrupar por user_id, sumando prestamos y abonos por separado
-    const map = new Map<
-      string | number,
-      { totalPrestamos: number; totalAbonos: number }
-    >();
-
-    loanRecords.forEach(({ user_id, monto, tipo_operacion }) => {
-      const key = user_id;
-      const entry = map.get(key) ?? { totalPrestamos: 0, totalAbonos: 0 };
-
-      if (tipo_operacion === 'prestamo') {
-        entry.totalPrestamos += monto;
-      } else {
-        entry.totalAbonos += monto;
-      }
-
-      map.set(key, entry);
-    });
-
-    // 2) Crear el array final restando abonos a prestamos y reemplazando user_id si aplica
-    const result = Array.from(map.entries()).map(([user_id, { totalPrestamos, totalAbonos }]) => {
-      const diferencia = totalPrestamos - totalAbonos;
-      const match = empleados.find(e => e.id === String(user_id));
-
-      return {
-        user_id: match ? match.value : user_id,
-        monto: diferencia,
-      };
-    });
-
-    // 3) Guardar en estado
-    setProcessedLoans(result);
-  }, [loanRecords, empleados]);
-
-  const calculateBarSize = () => {
-    if (containerRef.current) {
-      const width = containerRef.current.offsetWidth;
-      const totalBars = data.length;
-
-      const newBarSize = Math.max(Math.min((width / totalBars) * 0.6, 80), 10);
-      setBarSize(newBarSize);
-    }
-  };
-
-  useEffect(() => {
-    calculateBarSize();
-    window.addEventListener('resize', calculateBarSize);
-    return () => window.removeEventListener('resize', calculateBarSize);
-  }, [data]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await listSalesSummary("today", {}, (user?.userProfile?.rol !== "admin" ? user?.userProfile?.id : undefined));
-        console.log((user?.userProfile?.rol !== "admin" ? user?.userProfile?.id : undefined))
-        console.log(user?.userProfile?.rol)
-        console.log("Respuesta real de la RPC:", response);
-        setData(response)
-
-      } catch (error) {
-        console.error("Error al obtener resumen de ventas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-
-  const buttons = ["Empleados", "Prestamos", "Servicios"];
-
-  if (loading) return <p>Cargando datos...</p>;
-
-
-
-  const records = data[0].sales_records ?? [];
-
-  // Dependiendo de selectedOption creas data2:
-  let data2: { hour?: string; day?: string; value: number }[] = [];
-
-  if (selectedOption === "Dia") {
-    data2 = prepareHourlyData(records, user?.userProfile?.rol === "admin" ? false : true);
-  } else if (selectedOption === "Semana" || selectedOption === "Mes") {
-    data2 = prepareDailyData(records, selectedOption, selectedDate, user?.userProfile?.rol === "admin" ? false : true);
-  }
-
+  const records = data[0]?.sales_records ?? [];
   const recordss = loanRecords ?? [];
 
-  // Dependiendo de selectedOption creas data2:
-  let data3: { hour?: string; day?: string; value: number }[] = [];
+  let data2 = selectedOption === 'Dia'
+    ? prepareHourlyData(records, user?.userProfile?.rol !== 'admin')
+    : prepareDailyData(records, selectedOption, selectedDate, user?.userProfile?.rol !== 'admin');
 
-  if (selectedOption === "Dia") {
-    data3 = prepareHourlyData(recordss);
-  } else if (selectedOption === "Semana" || selectedOption === "Mes") {
-    data3 = prepareDailyData(recordss, selectedOption, selectedDate);
-  }
+  let data3 = selectedOption === 'Dia'
+    ? prepareHourlyData(recordss)
+    : prepareDailyData(recordss, selectedOption, selectedDate);
+
+  const buttons = ['Empleados', 'Prestamos', 'Servicios'];
 
 
 

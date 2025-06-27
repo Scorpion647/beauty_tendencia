@@ -41,160 +41,130 @@ type EmpleadoOption = { label: string; value: string; id: string; };
 
 
 export const Register_sale = () => {
-    const [servicios, setservicios] = useState<string[]>([]);
-    const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
-    const metodos = ["Efectivo", "Bold", "Transferencia"];
-    const [items, setItems] = useState<ServicioItem[]>([]);
-    const [Cant, setCant] = useState(1)
-    const [Price, setPrice] = useState<number>(0);
-    const [rawPrice, setRawPrice] = useState<string>('');
-    const { user, loading } = useUser(); // Aquí obtienes el user directamente
-    const [visible, setVisible] = useState(false);
+  const { user, loading } = useUser();
 
-if (loading) {
-    return <div>Cargando...</div>;
-  }
+  // Estados
+  const [servicios, setServicios] = useState<string[]>([]);
+  const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
+  const [items, setItems] = useState<ServicioItem[]>([]);
+  const [Cant, setCant] = useState(1);
+  const [Price, setPrice] = useState<number>(0);
+  const [rawPrice, setRawPrice] = useState<string>('');
+  const [visible, setVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [values, setValues] = useState<{ label: string; value: string }[]>([]);
+  const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
+  const [selectedEmpleado, setSelectedEmpleado] = useState(
+    user?.userProfile?.rol === 'admin'
+      ? ''
+      : `${user?.userProfile?.nombres ?? ''} ${user?.userProfile?.apellidos ?? ''}`
+  );
+  const [selectedMetodo, setselectedMetodo] = useState('');
+  const metodos = ['Efectivo', 'Bold', 'Transferencia'];
 
-    interface User {
-        id: string;
-        nombres: string;
-        apellidos: string;
-        celular: string;
-        correo: string;
-        rol: "admin" | "employee" | "guest";
-        created_at: string;
-        updated_at: string;
+  // Carga inicial de datos
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await listUsers(1, 100);
+        const empleadosFormateados = data.map((user) => {
+          const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
+          const inicialesApellidos = user.apellidos
+            .split(' ')
+            .filter((palabra: string) => palabra.trim() !== '')
+            .map((palabra: string) => palabra.charAt(0).toUpperCase())
+            .join('.') + '.';
+
+          return {
+            label: `${nombre} ${inicialesApellidos}`,
+            value: `${nombre} ${inicialesApellidos}`,
+            id: user.id,
+          };
+        });
+        setEmpleados(empleadosFormateados);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+
+      try {
+        const service = await getAllServices();
+        if (service.length > 0) {
+          setServicios(service);
+        }
+      } catch (error) {
+        console.log(error);
+      }
     }
 
+    fetchData();
+  }, []);
 
+  if (loading) return <div>Cargando...</div>;
 
+  // Funciones auxiliares
+  const addItem = (nuevo: Omit<ServicioItem, 'id'>) => {
+    setItems((prev) => [...prev, { id: prev.length, ...nuevo }]);
+    setCant(0);
+    setPrice(0);
+    setValues([]);
+    setRawPrice('');
+  };
 
+  const removeItem = (idToRemove: number) => {
+    setItems((prev) => {
+      const filtrados = prev.filter((item) => item.id !== idToRemove);
+      return filtrados.map((item, index) => ({ ...item, id: index }));
+    });
+  };
 
-    const [error, setError] = useState<string | null>(null);
+  const totalPrecioXCantidad =
+    items.reduce((sum, item) => sum + item.precio * item.cantidad, 0) + Price * Cant;
 
-    useEffect(() => {
-        // Traer primera página con 100 usuarios
-        listUsers(1, 100)
-            .then((data) => {
+  const totalGanado =
+    items.reduce((sum, item) => sum + item.ganado, 0) + (Price * Cant) * 0.5;
 
+  const Make_sales = async () => {
+    if (!user?.userProfile?.id) {
+      setError('No hay usuario autenticado');
+      return;
+    }
 
-                // Aquí armamos el array de empleados con la estructura solicitada
-                const empleadosFormateados = data.map((user) => {
-                    const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
+    if (!items.length) {
+      setError('Agrega al menos un ítem antes de finalizar');
+      return;
+    }
 
-                    const inicialesApellidos = user.apellidos
-                        .split(' ')
-                        .filter((palabra: string) => palabra.trim() !== '') // evita errores si hay espacios extra
-                        .map((palabra: string) => palabra.charAt(0).toUpperCase())
-                        .join('.') + '.';
+    if (!selectedMetodo) {
+      setError('Selecciona un método de pago');
+      return;
+    }
 
-                    return {
-                        label: `${nombre} ${inicialesApellidos}`,
-                        value: `${nombre} ${inicialesApellidos}`,
-                        id: user.id
-                    };
-                });
+    const metodo: 'cash' | 'card' | 'transaction' =
+      selectedMetodo === 'Bold'
+        ? 'card'
+        : selectedMetodo === 'Transferencia'
+        ? 'transaction'
+        : 'cash';
 
-                setEmpleados(empleadosFormateados);
-            })
-            .catch((err) => {
-                setError(err instanceof Error ? err.message : String(err));
-            });
-    }, []);
+    const response = await createSaleRecord(values2[0].id, metodo, items);
 
-    useEffect(() => {
-        const getservice = async () => {
-            const service = await getAllServices()
-            try {
-                if (service.length > 0) {
-                    setservicios(service)
-                }
-            } catch (error) {
-                console.log(error)
-            }
-        }
-        console.log(error)
-        getservice()
-    }, [])
+    if (response.success) {
+      setVisible(true);
+      setCant(0);
+      setPrice(0);
+      setValues([]);
+      setRawPrice('');
+      setItems([]);
+      setSelectedEmpleado('');
+      setselectedMetodo('');
+      setTimeout(() => setVisible(false), 3000);
+    } else {
+      setError(response.error.message);
+      console.error('Error al crear la venta:', response.error.message, response.error.details);
+    }
+  };
 
-
-
-    const [values, setValues] = useState<{ label: string; value: string }[]>([]);
-    const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
-
-    const addItem = (nuevo: Omit<ServicioItem, 'id'>) => {
-        setItems(prev => [
-            ...prev,
-            { id: prev.length, ...nuevo }
-        ]);
-        setCant(0)
-        setPrice(0)
-        setValues([]);
-        setRawPrice("")
-    };
-
-    const removeItem = (idToRemove: number) => {
-        setItems(prev => {
-            const filtrados = prev.filter(item => item.id !== idToRemove);
-            return filtrados.map((item, index) => ({ ...item, id: index }));
-        });
-    };
-
-
-
-    const totalPrecioXCantidad = items.reduce(
-        (sum, item) => sum + item.precio * item.cantidad,
-        0
-    ) + Price * Cant;
-    const totalGanado = items.reduce(
-        (sum, item) => sum + item.ganado,
-        0
-    ) + (Price * Cant) * 0.5;
-
-    const [selectedEmpleado, setSelectedEmpleado] = useState((user?.userProfile?.rol === "admin" ? "" : user?.userProfile?.nombres + " " + user?.userProfile?.apellidos));
-    const [selectedMetodo, setselectedMetodo] = useState("");
-
-
-
-    const Make_sales = async () => {
-        if (!user?.userProfile?.id) {
-            setError('No hay usuario autenticado');
-            return;
-        }
-        if (!items.length) {
-            setError('Agrega al menos un ítem antes de finalizar');
-            return;
-        }
-        if (!selectedMetodo) {
-            setError('Selecciona un método de pago');
-            return;
-        }
-
-        const metodo: 'cash' | 'card' | 'transaction' =
-            selectedMetodo === 'Bold' ? 'card'
-                : (selectedMetodo === 'Transferencia' ? 'transaction' : 'cash');
-
-        const response = await createSaleRecord(values2[0].id, metodo, items);
-        console.log(user.userProfile.id)
-
-        if (response.success) {
-            console.log('Venta creada con éxito:', response.data);
-            setVisible(true)
-            setCant(0)
-            setPrice(0)
-            setValues([]);
-            setRawPrice("")
-            setItems([]);
-            setSelectedEmpleado("");
-            setselectedMetodo("");
-            setTimeout(() => setVisible(false), 3000);
-        } else {
-            console.error('Error al crear la venta:', response.error.message, response.error.details);
-            setError(response.error.message);
-        }
-    };
-
-    const opciones = servicios.map(s => ({ label: s, value: s }));
+  const opciones = servicios.map((s) => ({ label: s, value: s }));
 
 
     return (

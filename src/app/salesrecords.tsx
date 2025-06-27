@@ -449,10 +449,7 @@ export const Sales_records = () => {
 
   const buttons = ['Empleados', 'Prestamos', 'Servicios'];
 
-  const options = buttons.map((button) => ({
-    label: button,
-    value: button,
-  }));
+
 
 
 

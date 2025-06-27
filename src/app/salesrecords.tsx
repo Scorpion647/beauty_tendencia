@@ -10,6 +10,7 @@ import { useUser } from "@/lib/context/Usercontext";
 import Select from 'react-dropdown-select';
 import { getLoanRecords } from '@/lib/supabase/loans';
 import { toZonedTime, format } from 'date-fns-tz';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 
 const timeZone = 'America/Bogota';
@@ -125,13 +126,20 @@ export function prepareDailyData(
   selectedDate: string,
   useEarnings = false
 ): { day: string; value: number }[] {
-  // Para ventas sigue usando buckets: { [día]: total }
-  // Para préstamos usamos buckets: { [día]: { prestamo: number, abono: number } }
   const isLoanData = records.length > 0 && "tipo_operacion" in records[0];
 
-  const buckets: Record<string, any> = {};
+  const buckets: Record<
+    string,
+    number | { prestamo: number; abono: number }
+  > = {};
 
-  function extract(rec: SalesRecord | LoanRecord) {
+  function extract(
+    rec: SalesRecord | LoanRecord
+  ): {
+    date: Date;
+    value: number;
+    tipo?: "prestamo" | "abono";
+  } {
     if ("sale_date" in rec) {
       return {
         date: new Date(rec.sale_date),
@@ -141,7 +149,7 @@ export function prepareDailyData(
       return {
         date: new Date(rec.creado_en),
         value: rec.monto,
-        tipo: rec.tipo_operacion, // "prestamo" o "abono"
+        tipo: rec.tipo_operacion,
       };
     }
   }
@@ -152,27 +160,34 @@ export function prepareDailyData(
     const refYear = refDate.getFullYear();
     const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-    weekDays.forEach((wd) => {
-      buckets[wd] = isLoanData ? { prestamo: 0, abono: 0 } : 0;
-    });
+    for (const day of weekDays) {
+      buckets[day] = isLoanData ? { prestamo: 0, abono: 0 } : 0;
+    }
 
     for (const rec of records) {
       const { date, value, tipo } = extract(rec);
       if (getWeekNumber(date) === refWeek && date.getFullYear() === refYear) {
         const wd = weekDays[date.getDay()];
-        if (isLoanData) {
-          if (tipo === "prestamo") buckets[wd].prestamo += value;
-          else if (tipo === "abono") buckets[wd].abono += value;
+        if (isLoanData && tipo) {
+          const entry = buckets[wd] as { prestamo: number; abono: number };
+          if (tipo === "prestamo") entry.prestamo += value;
+          else if (tipo === "abono") entry.abono += value;
         } else {
-          buckets[wd] += value;
+          buckets[wd] = (buckets[wd] as number) + value;
         }
       }
     }
 
-    return weekDays.map((wd) => ({
-      day: wd,
-      value: isLoanData ? buckets[wd].prestamo - buckets[wd].abono : buckets[wd],
-    }));
+    return weekDays.map((wd) => {
+      const entry = buckets[wd];
+      return {
+        day: wd,
+        value: isLoanData
+          ? (entry as { prestamo: number; abono: number }).prestamo -
+            (entry as { prestamo: number; abono: number }).abono
+          : (entry as number),
+      };
+    });
   }
 
   // Mes
@@ -190,11 +205,12 @@ export function prepareDailyData(
     const { date, value, tipo } = extract(rec);
     if (date.getMonth() === refMonth && date.getFullYear() === refYear) {
       const dayStr = date.getDate().toString();
-      if (isLoanData) {
-        if (tipo === "prestamo") buckets[dayStr].prestamo += value;
-        else if (tipo === "abono") buckets[dayStr].abono += value;
+      if (isLoanData && tipo) {
+        const entry = buckets[dayStr] as { prestamo: number; abono: number };
+        if (tipo === "prestamo") entry.prestamo += value;
+        else if (tipo === "abono") entry.abono += value;
       } else {
-        buckets[dayStr] += value;
+        buckets[dayStr] = (buckets[dayStr] as number) + value;
       }
     }
   }
@@ -202,7 +218,10 @@ export function prepareDailyData(
   return Object.entries(buckets)
     .map(([day, val]) => ({
       day,
-      value: isLoanData ? val.prestamo - val.abono : val,
+      value: isLoanData
+        ? (val as { prestamo: number; abono: number }).prestamo -
+          (val as { prestamo: number; abono: number }).abono
+        : (val as number),
     }))
     .sort((a, b) => Number(a.day) - Number(b.day));
 }
@@ -212,9 +231,9 @@ export function prepareDailyData(
 
 function calcularBalancePrestamos(
   data: LoanRecord[],
-  user: any,
-  selectedEmployee: any,
-  filtroUserId: string // <- variable con el ID del usuario a filtrar si no es admin
+  user: { userProfile?: { rol?: string; id?: string } } | null,
+  selectedEmployee: UserSalesData | null,
+  filtroUserId: string
 ): number {
   const esAdminSinEmpleado = !selectedEmployee && user?.userProfile?.rol === "admin";
 
@@ -237,42 +256,34 @@ function calcularBalancePrestamos(
 }
 
 
-interface User {
-  id: string;
-  nombres: string;
-  apellidos: string;
-  celular: string;
-  correo: string;
-  rol: "admin" | "employee" | "guest";
-  created_at: string;
-  updated_at: string;
-}
+
 
 type EmpleadoOption = { label: string; value: string; id: string; };
 
-interface CustomTooltipProps extends TooltipProps<any, any> {
+interface CustomTooltipProps extends TooltipProps<ValueType, NameType> {
   activeButton: string;
 }
+
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, activeButton }) => {
   if (!active || !payload || !payload.length) return null;
 
   const dataPoint = payload[0].payload;
   const value = payload[0].value;
+  const parsedValue = typeof value === 'number' ? value : Number(value) || 0;
 
   return (
     <div className="bg-gray-800 p-2 rounded text-white border border-gray-300">
       {activeButton === "Empleados" ? (
         <>
           <p className="font-bold mb-1">Empleado: {label}</p>
-          <p>Total: {formatCurrency(value ?? 0)} Pesos</p>
+          <p>Total: {formatCurrency(parsedValue)} Pesos</p>
           <p>Cantidad de servicios: {dataPoint.sales_records?.length ?? 0}</p>
         </>
       ) : (
         <>
           <p className="font-bold mb-1">Empleado: {label}</p>
-          <p>Monto prestado: {formatCurrency(value ?? 0)} Pesos</p>
-          {/* Si tus loanRecords traen fecha o estado, puedes mostrarlo aquí: */}
+          <p>Monto prestado: {formatCurrency(parsedValue)} Pesos</p>
           {dataPoint.date && <p>Fecha: {new Date(dataPoint.date).toLocaleDateString()}</p>}
           {dataPoint.status && <p>Estado: {dataPoint.status}</p>}
         </>
@@ -280,6 +291,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, a
     </div>
   );
 };
+
 
 
 type FilterOption = "Dia" | "Semana" | "Mes";
@@ -343,13 +355,16 @@ const handleFilter = useCallback(async (id?: string) => {
 }, [selectedDate, selectedOption, IDusersave, user]);
 
 const handleFilterLoans = useCallback(async () => {
+  const adaptedUser = user?.userProfile
+  ? { userProfile: { rol: user.userProfile.rol, id: user.userProfile.id } }
+  : null;
   try {
     const uid = values2.length > 0 ? values2[0].id : undefined;
     const date = selectedDate;
     const filtro = selectedOption;
     const loanData = await getLoanRecords(uid, date, filtro);
     setLoanRecords(loanData);
-    setDeudaTotal(calcularBalancePrestamos(loanData, user, selectedEmployee, user?.userProfile?.id || ''));
+    setDeudaTotal(calcularBalancePrestamos(loanData, adaptedUser, selectedEmployee, user?.userProfile?.id || ''));
   } catch (error) {
     console.error('Error al aplicar el filtro:', error);
   }
@@ -365,8 +380,9 @@ useEffect(() => {
 }, [handleFilter, handleFilterLoans]);
 
 useEffect(() => {
-  listUsers(1, 100)
-    .then((users) => {
+  const fetchEmpleados = async () => {
+    try {
+      const users = await listUsers(1, 100);
       const empleadosFormateados = users.map((user) => {
         const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
         const inicialesApellidos = user.apellidos
@@ -377,9 +393,14 @@ useEffect(() => {
         return { label: `${nombre} ${inicialesApellidos}`, value: `${nombre} ${user.apellidos}`, id: user.id };
       });
       setEmpleados(empleadosFormateados);
-    })
-    .catch(console.error);
+    } catch (err) {
+      console.error('Error al cargar empleados:', err);
+    }
+  };
+
+  fetchEmpleados();
 }, []);
+
 
 useEffect(() => {
   const map = new Map<string | number, { totalPrestamos: number; totalAbonos: number }>();
@@ -453,10 +474,7 @@ const buttons = ['Empleados', 'Prestamos', 'Servicios'];
                     <YAxis
                       tickFormatter={(value) => value.toLocaleString('es-ES')}
                     />
-                    <Tooltip
-                      // Usa una función para inyectar props adicionales:
-                      content={(props) => <CustomTooltip {...props} activeButton={activeButton} />}
-                    />
+                    <Tooltip content={(props) => <CustomTooltip {...props} activeButton={activeButton} />} />
                     <CartesianGrid strokeDasharray="3 3" />
                     <Bar
                       dataKey={activeButton === "Empleados" ? "total" : "monto"}

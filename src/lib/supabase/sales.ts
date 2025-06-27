@@ -1,7 +1,8 @@
 'use server'
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { PostgrestError } from '@supabase/supabase-js';
 
 type ServicioItem = {
   id: number;
@@ -11,22 +12,38 @@ type ServicioItem = {
   ganado: number;
 };
 
+type SaleRecord = {
+  id: number;
+  sale_code: string;
+  payment_method: 'cash' | 'card' | 'transaction';
+  total_amount: number;
+  earnings_amount: number;
+  user_id: string;
+  created_at?: string;
+};
+
+type SalesItemInsert = {
+  sale_id: number;
+  service_name: string;
+  service_cost: number;
+  employee_earnings: number;
+  service_quantity: number;
+};
+
 export async function createSaleRecord(
   userId: string,
   paymentMethod: 'cash' | 'card' | 'transaction',
   items: ServicioItem[]
 ): Promise<{
   success: boolean;
-  data?: { saleRecord: any; salesItems: any[] };
-  error?: any;
+  data?: { saleRecord: SaleRecord; salesItems: SalesItemInsert[] };
+  error?: PostgrestError | Error;
 }> {
   try {
-    // ✅ Esta es la forma correcta en server actions
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient({ cookies });
 
     const total_amount = items.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
     const earnings_amount = items.reduce((acc, item) => acc + ((item.precio * item.cantidad) * 0.5), 0);
-
     const sale_code = `SALE-${Date.now()}`;
 
     const { data: saleRecord, error: saleError } = await supabase
@@ -39,7 +56,7 @@ export async function createSaleRecord(
         user_id: userId
       })
       .select()
-      .single();
+      .single<SaleRecord>();
 
     if (saleError) {
       console.error('Error creating sale record:', saleError.message, saleError.details);
@@ -48,7 +65,7 @@ export async function createSaleRecord(
 
     const saleId = saleRecord.id;
 
-    const salesItemsPayload = items.map(item => ({
+    const salesItemsPayload: SalesItemInsert[] = items.map(item => ({
       sale_id: saleId,
       service_name: item.servicio,
       service_cost: item.precio,
@@ -67,11 +84,13 @@ export async function createSaleRecord(
 
     return { success: true, data: { saleRecord, salesItems: salesItemsPayload } };
 
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Unexpected error:', err);
-    return { success: false, error: err };
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return { success: false, error };
   }
 }
+
 
 
 

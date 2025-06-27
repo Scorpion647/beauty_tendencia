@@ -84,6 +84,7 @@ export const Register_sale = () => {
         setEmpleados(empleadosFormateados);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
+        console.log(error)
       }
 
       try {
@@ -159,8 +160,8 @@ export const Register_sale = () => {
       setselectedMetodo('');
       setTimeout(() => setVisible(false), 3000);
     } else {
-      setError(response.error.message);
-      console.error('Error al crear la venta:', response.error.message, response.error.details);
+      setError(response?.error?.message || "");
+      console.error('Error al crear la venta:', response?.error?.message, response?.error);
     }
   };
 

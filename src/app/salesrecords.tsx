@@ -1,6 +1,6 @@
 import { listSalesSummary } from '@/lib/sales_records';
 import { Button, Radio } from 'flowbite-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps, AreaChart, Area } from 'recharts';
 import { FaFilter } from "react-icons/fa";
 import { MdListAlt } from 'react-icons/md';
@@ -284,174 +284,145 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, a
 
 type FilterOption = "Dia" | "Semana" | "Mes";
 export const Sales_records = () => {
-  const { user, loading: loading2 } = useUser();
+type FilterType = 'today' | 'specific_day' | 'specific_week' | 'specific_month';
+type FilterOptions = { day?: string; week?: number; year?: number; month?: number };
 
-  const [data, setData] = useState<UserSalesData[]>([]);
-  const [loanRecords, setloanRecords] = useState<LoanRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isOpen2, setIsOpen2] = useState(false);
-  const [s_items, sets_items] = useState<SalesRecord>();
-  const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
-  const [selectedOption, setSelectedOption] = useState<FilterOption>('Dia');
-  const todayBogota = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
-  const [selectedDate, setSelectedDate] = useState(todayBogota);
-  const [Deudatotal, setDeudatotal] = useState(0);
-  const [IDusersave, setIDusersave] = useState<string>('');
-  const [processedLoans, setProcessedLoans] = useState<{ user_id: string | number; monto: number }[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [barSize, setBarSize] = useState(20);
-  const [selectedEmployee, setSelectedEmployee] = useState<UserSalesData | null>(null);
-  const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
-  const [activeButton, setActiveButton] = useState<string>('Empleados');
+const { user, loading: loadingUser } = useUser();
 
-  const openModal = () => setIsOpen(true);
-  const openModal2 = () => setIsOpen2(true);
-  const closeModal = () => setIsOpen(false);
-  const closeModal2 = () => setIsOpen2(false);
+const [data, setData] = useState<UserSalesData[]>([]);
+const [loanRecords, setLoanRecords] = useState<LoanRecord[]>([]);
+const [loading, setLoading] = useState(true);
+const [isOpen, setIsOpen] = useState(false);
+const [isOpen2, setIsOpen2] = useState(false);
+const [s_items, sets_items] = useState<SalesRecord>();
+const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
+const [selectedOption, setSelectedOption] = useState<FilterOption>('Dia');
+const todayBogota = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
+const [selectedDate, setSelectedDate] = useState(todayBogota);
+const [deudaTotal, setDeudaTotal] = useState(0);
+const [IDusersave, setIDusersave] = useState<string>('');
+const [processedLoans, setProcessedLoans] = useState<{ user_id: string | number; monto: number }[]>([]);
+const [barSize, setBarSize] = useState(20);
+const [selectedEmployee, setSelectedEmployee] = useState<UserSalesData | null>(null);
+const [values2, setValues2] = useState<EmpleadoOption[]>([]);
+const [activeButton, setActiveButton] = useState<string>('Empleados');
+const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      await handleFilter();
-      await handleFilterloans();
-      setLoading(false);
-    };
-    fetchInitialData();
-  }, []);
+const openModal = () => setIsOpen(true);
+const openModal2 = () => setIsOpen2(true);
+const closeModal = () => setIsOpen(false);
+const closeModal2 = () => setIsOpen2(false);
 
-  useEffect(() => {
-    listUsers(1, 100)
-      .then((data) => {
-        const empleadosFormateados = data.map((user) => {
-          const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
-          const inicialesApellidos = user.apellidos
-            .split(' ')
-            .filter((palabra: string) => palabra.trim() !== '')
-            .map((palabra: string) => palabra.charAt(0).toUpperCase())
-            .join('.') + '.';
+const handleFilter = useCallback(async (id?: string) => {
+  if (!selectedDate || !selectedOption) return;
 
-          return {
-            label: `${nombre} ${inicialesApellidos}`,
-            value: `${nombre} ${user.apellidos}`,
-            id: user.id,
-          };
-        });
+  let filterType: FilterType = 'today';
+  let options: FilterOptions = {};
 
-        setEmpleados(empleadosFormateados);
-      })
-      .catch(console.error);
-  }, []);
+  if (selectedOption === 'Dia') {
+    filterType = 'specific_day';
+    options.day = selectedDate;
+  } else if (selectedOption === 'Semana') {
+    const dateObj = new Date(selectedDate);
+    filterType = 'specific_week';
+    options = { week: getWeekNumber(dateObj), year: dateObj.getFullYear() };
+  } else if (selectedOption === 'Mes') {
+    const dateObj = new Date(selectedDate);
+    filterType = 'specific_month';
+    options = { month: dateObj.getMonth() + 1, year: dateObj.getFullYear() };
+  }
 
-  useEffect(() => {
-    const userId = values2.length > 0 ? values2[0].id : undefined;
-    const date = selectedDate || todayBogota;
+  try {
+    const uid = user?.userProfile?.rol !== 'admin' ? user?.userProfile?.id : id || IDusersave || undefined;
+    const summary = await listSalesSummary(filterType, options, uid);
+    setData(summary);
+    closeModal2();
+  } catch (error) {
+    console.error('Error al filtrar:', error);
+  }
+}, [selectedDate, selectedOption, IDusersave, user]);
+
+const handleFilterLoans = useCallback(async () => {
+  try {
+    const uid = values2.length > 0 ? values2[0].id : undefined;
+    const date = selectedDate;
     const filtro = selectedOption;
+    const loanData = await getLoanRecords(uid, date, filtro);
+    setLoanRecords(loanData);
+    setDeudaTotal(calcularBalancePrestamos(loanData, user, selectedEmployee, user?.userProfile?.id || ''));
+  } catch (error) {
+    console.error('Error al aplicar el filtro:', error);
+  }
+}, [values2, selectedDate, selectedOption, selectedEmployee, user]);
 
-    const fetchLoans = async () => {
-      try {
-        const id = user?.userProfile?.rol === 'admin' ? userId : user?.userProfile?.id;
-        const loans = await getLoanRecords(id, date, filtro);
-        setloanRecords(loans);
-        setDeudatotal(calcularBalancePrestamos(loans, user, selectedEmployee, id || ''));
-      } catch (err) {
-        console.error('Error al obtener préstamos:', err);
-      }
-    };
-    fetchLoans();
-  }, []);
-
-  useEffect(() => {
-    const map = new Map<string | number, { totalPrestamos: number; totalAbonos: number }>();
-
-    loanRecords.forEach(({ user_id, monto, tipo_operacion }) => {
-      const entry = map.get(user_id) ?? { totalPrestamos: 0, totalAbonos: 0 };
-      tipo_operacion === 'prestamo' ? entry.totalPrestamos += monto : entry.totalAbonos += monto;
-      map.set(user_id, entry);
-    });
-
-    const result = Array.from(map.entries()).map(([user_id, { totalPrestamos, totalAbonos }]) => {
-      const match = empleados.find(e => e.id === String(user_id));
-      return {
-        user_id: match ? match.value : user_id,
-        monto: totalPrestamos - totalAbonos,
-      };
-    });
-
-    setProcessedLoans(result);
-  }, [loanRecords, empleados]);
-
-  useEffect(() => {
-    const width = containerRef.current?.offsetWidth ?? 0;
-    const totalBars = data.length;
-    const newBarSize = Math.max(Math.min((width / totalBars) * 0.6, 80), 10);
-    setBarSize(newBarSize);
-  }, [data]);
-
-  const handleFilter = async (id?: string) => {
-    if (!selectedDate || !selectedOption) return;
-
-    let filterType: any = 'today';
-    let options: any = {};
-
-    if (selectedOption === 'Dia') {
-      filterType = 'specific_day';
-      options = { day: selectedDate };
-    } else if (selectedOption === 'Semana') {
-      const dateObj = new Date(selectedDate);
-      filterType = 'specific_week';
-      options = { week: getWeekNumber(dateObj), year: dateObj.getFullYear() };
-    } else if (selectedOption === 'Mes') {
-      const dateObj = new Date(selectedDate);
-      filterType = 'specific_month';
-      options = { month: dateObj.getMonth() + 1, year: dateObj.getFullYear() };
-    }
-
-    try {
-      const uid = user?.userProfile?.rol !== 'admin' ? user?.userProfile?.id : id || IDusersave || undefined;
-      const summary = await listSalesSummary(filterType, options, uid);
-      setData(summary);
-      closeModal2();
-    } catch (error) {
-      console.error('Error al filtrar:', error);
-    }
+useEffect(() => {
+  const fetchInitial = async () => {
+    await handleFilter();
+    await handleFilterLoans();
+    setLoading(false);
   };
+  fetchInitial();
+}, [handleFilter, handleFilterLoans]);
 
-  const handleFilterloans = async () => {
-    try {
-      const uid = values2.length > 0 ? values2[0].id : undefined;
-      const date = selectedDate;
-      const filtro = selectedOption;
-      const data = await getLoanRecords(uid, date, filtro);
-      setloanRecords(data);
-      setDeudatotal(calcularBalancePrestamos(data, user, selectedEmployee, user?.userProfile?.id || ''));
-    } catch (error) {
-      console.error('Error al aplicar el filtro:', error);
-    }
-  };
+useEffect(() => {
+  listUsers(1, 100)
+    .then((users) => {
+      const empleadosFormateados = users.map((user) => {
+        const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
+        const inicialesApellidos = user.apellidos
+          .split(' ')
+          .filter((p: string) => p.trim() !== '')
+          .map((p: string) => p.charAt(0).toUpperCase())
+          .join('.') + '.';
+        return { label: `${nombre} ${inicialesApellidos}`, value: `${nombre} ${user.apellidos}`, id: user.id };
+      });
+      setEmpleados(empleadosFormateados);
+    })
+    .catch(console.error);
+}, []);
 
-  const handleBarClick = (data: any) => {
-    setSelectedEmployee({
-      name: data.name,
-      total: data.total,
-      Ganado: data.Ganado,
-      sales_records: data.sales_records,
-    });
-  };
+useEffect(() => {
+  const map = new Map<string | number, { totalPrestamos: number; totalAbonos: number }>();
+  loanRecords.forEach(({ user_id, monto, tipo_operacion }) => {
+    const entry = map.get(user_id) ?? { totalPrestamos: 0, totalAbonos: 0 };
+    tipo_operacion === 'prestamo' ? (entry.totalPrestamos += monto) : (entry.totalAbonos += monto);
+    map.set(user_id, entry);
+  });
 
-  if (loading || loading2) return <div>Cargando...</div>;
+  const result = Array.from(map.entries()).map(([user_id, { totalPrestamos, totalAbonos }]) => {
+    const match = empleados.find(e => e.id === String(user_id));
+    return { user_id: match ? match.value : user_id, monto: totalPrestamos - totalAbonos };
+  });
 
-  const records = data[0]?.sales_records ?? [];
-  const recordss = loanRecords ?? [];
+  setProcessedLoans(result);
+}, [loanRecords, empleados]);
 
-  let data2 = selectedOption === 'Dia'
-    ? prepareHourlyData(records, user?.userProfile?.rol !== 'admin')
-    : prepareDailyData(records, selectedOption, selectedDate, user?.userProfile?.rol !== 'admin');
+useEffect(() => {
+  const width = containerRef.current?.offsetWidth ?? 0;
+  const totalBars = data.length;
+  const newBarSize = Math.max(Math.min((width / totalBars) * 0.6, 80), 10);
+  setBarSize(newBarSize);
+}, [data]);
 
-  let data3 = selectedOption === 'Dia'
-    ? prepareHourlyData(recordss)
-    : prepareDailyData(recordss, selectedOption, selectedDate);
+const handleBarClick = (d: UserSalesData) => {
+  setSelectedEmployee(d);
+};
 
-  const buttons = ['Empleados', 'Prestamos', 'Servicios'];
+if (loading || loadingUser) return <div>Cargando...</div>;
+
+const records = data[0]?.sales_records ?? [];
+const recordss = loanRecords ?? [];
+
+const data2 = selectedOption === 'Dia'
+  ? prepareHourlyData(records, user?.userProfile?.rol !== 'admin')
+  : prepareDailyData(records, selectedOption, selectedDate, user?.userProfile?.rol !== 'admin');
+
+const data3 = selectedOption === 'Dia'
+  ? prepareHourlyData(recordss)
+  : prepareDailyData(recordss, selectedOption, selectedDate);
+
+const buttons = ['Empleados', 'Prestamos', 'Servicios'];
+
 
 
 
@@ -595,7 +566,7 @@ export const Sales_records = () => {
               ))}
               <Button onClick={() => { openModal2(); }} color="pink" className=' w-[10%] max-w-[20px] min-w-[60px] h-[95%] rounded-none '><FaFilter color="white" width={10} height={10} /></Button>
               {activeButton === "Prestamos" && (
-                <p className=' text-black'>{(user?.userProfile?.rol === "admin" && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(Deudatotal)}</p>
+                <p className=' text-black'>{(user?.userProfile?.rol === "admin" && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
               )}
             </div>
             <div className=' border-t-2 border-t-black h-[88%] overflow-auto w-full flex flex-col '>
@@ -795,7 +766,7 @@ export const Sales_records = () => {
 
               <button
                 className="bg-pink-600 active:bg-pink-700 cursor-pointer text-white p-2 rounded mt-4"
-                onClick={() => { handleFilter(); handleFilterloans() }}
+                onClick={() => { handleFilter(); handleFilterLoans() }}
               >
                 Filtrar
               </button>

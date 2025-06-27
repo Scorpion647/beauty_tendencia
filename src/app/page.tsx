@@ -33,11 +33,17 @@ export default function Home() {
       console.log(user)
       redirect();
       setLoading(false);
-    } catch (err: any) {
-      setLoading(false);
-      setError("Credenciales no validas");
-      console.log(err)
-    }
+    } catch (err: unknown) {
+  setLoading(false);
+
+  if (err instanceof Error) {
+    setError("Credenciales no válidas");
+    console.error("Error:", err.message);
+  } else {
+    setError("Ocurrió un error inesperado.");
+    console.error("Error desconocido:", err);
+  }
+}
   };
 
 

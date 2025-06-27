@@ -61,7 +61,7 @@ export default function DashboardLayout() {
   // 2) Crea dos arrays distintos, con tipado explícito
   const adminItems: MenuItem[] = [
     { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
-    { key: "Sales", label: "Transacciones", Icon: MdAttachMoney },
+    { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Loans", label: "Prestamos",Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
@@ -74,12 +74,16 @@ export default function DashboardLayout() {
   ];
 
   const cashierItems: MenuItem[] = [
-    { key: "Sales", label: "Transacciones", Icon: MdAttachMoney },
+    { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const guestItems: MenuItem[] = [
+    { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
+    { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
+    { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
+    { key: "Loans", label: "Prestamos",Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 

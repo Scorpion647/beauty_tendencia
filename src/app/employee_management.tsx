@@ -24,7 +24,7 @@ export const Management_employee = () => {
         apellidos: string;
         celular: string;
         correo: string;
-        rol: "admin" | "employee" | "cashier"| "guest";
+        rol: "admin" | "employee" | "cashier" | "guest";
         created_at: string;
         updated_at: string;
     }
@@ -121,10 +121,10 @@ export const Management_employee = () => {
         <div className=" w-full h-full flex flex-row">
             <div className=" flex flex-col w-[100%]  h-full  items-center justify-center ">
                 <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col gap-2.5  sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-gray-600  items-center justify-center">
-                    <div className=" w-[95%] h-[10%] flex bg-pink-800  items-center justify-center rounded-tr-2xl rounded-tl-2xl border-2 border-gray-900 ">
-                        <p className="  text-2xl font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Gestion de empleados</p>
+                    <div className=" w-[95%] h-[6%] sm:h-[10%] flex bg-pink-800  items-center justify-center rounded-tr-2xl rounded-tl-2xl border-2 border-gray-900 ">
+                        <p className=" text-3xl  sm:text-2xl font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Gestion de empleados</p>
                     </div>
-                    <div className=" w-[95%] flex flex-col sm:flex-row gap-2.5 h-[82%] ">
+                    <div className=" w-[95%] flex flex-col sm:flex-row gap-2.5 h-[90%] sm:h-[82%] ">
                         <div className=" flex flex-col w-full h-[70%] sm:w-[60%] sm:h-full border-2 rounded-2xl border-gray-700 bg-red-500">
                             <div className=" flex flex-row h-[10%] w-full bg-pink-800 rounded-tr-2xl rounded-tl-2xl ">
 
@@ -178,14 +178,16 @@ export const Management_employee = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="px-2 sm:px-5 w-full h-[30%] sm:h-[25%] sm:max-h-[70px] flex justify-center  items-center ">
-                                    <div className="flex flex-col w-[50%] h-full">
-
-
-                                        <Dropdown color="pink" className=" cursor-pointer max-w-sm sm:w-full bg-pink-800 text-xs truncate  "  label={userrol || "Rol"}>
+                                <div className="px-2 sm:px-5 w-full h-[30%] sm:h-[25%] sm:max-h-[70px] flex justify-center items-center">
+                                    <div className="flex flex-col w-full sm:w-[50%] h-full items-center justify-center">
+                                        <Dropdown
+                                            color="pink"
+                                            className="cursor-pointer bg-pink-800 text-xs truncate w-full sm:max-w-sm"
+                                            label={userrol || "Rol"}
+                                        >
                                             {Roles.map((metodo) => (
                                                 <DropdownItem key={metodo} onClick={() => setuserrole(metodo)}>
-                                                    <div className="flex items-center gap-2 ">
+                                                    <div className="flex items-center gap-2">
                                                         <input
                                                             type="radio"
                                                             name="metodos"
@@ -200,6 +202,7 @@ export const Management_employee = () => {
                                     </div>
                                 </div>
 
+
                             </div>
                             <div className=" h-[10%] w-full flex bg-pink-800 rounded-br-2xl rounded-bl-2xl justify-center items-center">
                                 <button
@@ -210,13 +213,13 @@ export const Management_employee = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className=" py-2 sm:py-0 w-full h-[30%] sm:w-[40%] sm:h-full flex flex-col bg-gray-200 border-2 rounded-2xl  border-gray-700">
-                            <div className=" bg-pink-800 w-full h-[5%] sm:h-[10%] flex items-center justify-center rounded-tr-2xl rounded-tl-2xl">
+                        <div className="  sm:py-0 w-full h-[30%] sm:w-[40%] sm:h-full flex flex-col bg-gray-200 border-2 rounded-2xl  border-gray-700">
+                            <div className=" bg-pink-800 w-full h-[20%] sm:h-[10%] flex items-center justify-center rounded-tr-2xl rounded-tl-2xl">
                                 <p className=" text-lg sm:text-2xl font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Empleados</p>
                             </div>
                             <div className=" w-full h-[95%] flex flex-col sm:h-[90%]">
                                 {users.map((u) => (
-                                    <div key={u.id} className=" px-2.5 w-full h-[10%] flex flex-row justify-center items-center border-t-2 border-b-2 border-gray-400 bg-white mb-0.5 mt-0.5">
+                                    <div key={u.id} className=" px-2.5 w-full h-[15%] sm:h-[10%] flex flex-row justify-center items-center border-t-2 border-b-2 border-gray-400 bg-white mb-0.5 mt-0.5">
                                         <div className=" w-[80%] h-full justify-center items-center">
                                             <p className=" text-sm sm:text-lg  text-gray-800 font-semibold  ">{u.nombres} {u.apellidos}</p>
                                         </div>

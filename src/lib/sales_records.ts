@@ -86,9 +86,10 @@ export async function listSalesSummary(
   userId?: string
 ): Promise<UserSalesData[]> {
   // 1. Traer todos los usuarios
-  let { data: users, error: userError } =
+  //{ data: users, error: userError }
+  let { data: users } =
     await supabase.from("users").select("id, nombres");
-  if (userError) throw new Error(`Error al obtener usuarios: ${userError.message}`);
+  //if (userError) throw new Error(`Error al obtener usuarios: ${userError.message}`);
   users = users ?? [];
 
   // 1.1 Filtrar usuarios si se especifica userId
@@ -97,9 +98,10 @@ export async function listSalesSummary(
     : users;
 
   // 2. Traer todos los registros de venta
-  let { data: salesRecords, error: salesError } =
+  //{ data: salesRecords, error: salesError }
+  let { data: salesRecords} =
     await supabase.from("sales_records").select("*");
-  if (salesError) throw new Error(`Error al obtener ventas: ${salesError.message}`);
+  //if (salesError) throw new Error(`Error al obtener ventas: ${salesError.message}`);
   salesRecords = salesRecords ?? [];
 
   // 3. Traer todos los ítems de venta

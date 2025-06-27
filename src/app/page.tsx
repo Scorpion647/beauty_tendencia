@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Accessmodal from "./components/accessmodal";
 import { cursiva, oswald } from "@/app/components/fonts"
 import { loginWithEmail } from "@/lib/auth"
@@ -35,6 +36,7 @@ export default function Home() {
     } catch (err: any) {
       setLoading(false);
       setError("Credenciales no validas");
+      console.log(err)
     }
   };
 
@@ -117,13 +119,13 @@ export default function Home() {
 
 
           {/*Titulo con imagenes*/}
-          <div className=" flex items-center justify-center pt-10  w-full"><img width={70} height={70} src="Tendencia.png" alt="Tendencia" /></div>
+          <div className=" flex items-center justify-center pt-10  w-full"><Image width={70} height={70} src="/Tendencia.png" alt="Tendencia"/></div>
           <p className="  text-4xl font-extrabold text-black">TENDENCIA</p>
           <p className="  text-2xl font-bold text-black">Peluqueria</p>
 
           <div className={cursiva.className}><p className=" pb-7 text-4xl font-light text-black">Belleza confianza y satisfacion</p></div>
           <div className="flex items-center justify-center  h-[400px] lg:h-[450px] w-[100%] bg-black   ">
-            <img className=' h-full w-[450px]' src="Imagen1.jpeg" alt="WhatsApp" />
+            <Image width="450" height={300}  className=' h-full w-[450px]' src="/Imagen1.jpeg" alt="WhatsApp" />
           </div>
 
 
@@ -184,7 +186,7 @@ export default function Home() {
       <div className=" relative">
         <div className=" right-5 bottom-7 absolute">
           <a href="https://wa.me/573225821810" target="_blank" rel="noopener noreferrer">
-            <img width={70} height={70} src="wsp.png" alt="WhatsApp" />
+          <Image width={70} height={70} src="/wsp.png" alt="WhatsApp"/>
           </a>
         </div>
       </div>

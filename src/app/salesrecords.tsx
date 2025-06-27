@@ -1,7 +1,7 @@
 import { listSalesSummary } from '@/lib/sales_records';
-import { Button, Datepicker, Radio } from 'flowbite-react';
+import { Button, Radio } from 'flowbite-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps, LineChart, Line, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps, AreaChart, Area } from 'recharts';
 import { FaFilter } from "react-icons/fa";
 import { MdListAlt } from 'react-icons/md';
 import Accessmodal from './components/accessmodal';
@@ -46,10 +46,7 @@ export type UserSalesData = {
   sales_records: SalesRecord[];
 };
 
-type HourlyPoint = {
-  hour: string;    // "7", "8", ..., "23"
-  value: number;   // el total_amount (o earnings_amount) agregado de ese intervalo
-}
+
 
 
 function formatCurrency(
@@ -298,10 +295,8 @@ export const Sales_records = () => {
   const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
   const closeModal = () => setIsOpen(false);
   const closeModal2 = () => setIsOpen2(false);
-  const [users, setUsers] = useState<User[]>([]);
   const { user, loading: loading2 } = useUser(); // Aquí obtienes el user directamente
   const [selectedOption, setSelectedOption] = useState<FilterOption>("Dia");
-  const [error, setError] = useState<string | null>(null);
   const todayBogota = format(toZonedTime(new Date(), timeZone), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(todayBogota);
   const [Deudatotal, setDeudatotal] = useState(0);
@@ -311,7 +306,9 @@ export const Sales_records = () => {
   >([]);
 
 
-
+if (loading2) {
+    return <div>Cargando...</div>;
+  }
 
 
 
@@ -327,7 +324,7 @@ export const Sales_records = () => {
     sales_records: any[];
   } | null>(null);
 
-  const handleBarClick = (data: any, index: number) => {
+  const handleBarClick = (data: any) => {
     console.log(`Empleado: ${data.name} | Total: ${data.total} | Ganado: ${data.Ganado}`);
     console.log('Ventas:', data.sales_records);
 
@@ -422,7 +419,7 @@ export const Sales_records = () => {
     // Traer primera página con 100 usuarios
     listUsers(1, 100)
       .then((data) => {
-        setUsers(data);
+
 
         // Aquí armamos el array de empleados con la estructura solicitada
         const empleadosFormateados = data.map((user) => {
@@ -444,7 +441,7 @@ export const Sales_records = () => {
         setEmpleados(empleadosFormateados);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        console.log(err)
       });
   }, []);
 
@@ -814,7 +811,6 @@ export const Sales_records = () => {
                             hour12: true,
                           });
                           const dia = date.toLocaleDateString('es-ES');
-                          const mes = date.toLocaleString('es-ES', { month: 'long' });
 
                           return (
                             <li

@@ -1,16 +1,10 @@
 "use client"
 import { IoMdHome } from "react-icons/io";
 import { GiHamburgerMenu } from "react-icons/gi";
-import { FaUserFriends } from "react-icons/fa";
-import { FaFileInvoiceDollar } from "react-icons/fa";
-import { cursiva } from "@/app/components/fonts";
 import { Dropdown, DropdownItem, Toast } from "flowbite-react";
-import { CurrentSession, getCurrentSession } from "@/lib/getsession";
-import { useEffect, useState } from "react";
-import { Register_sale } from "@/app/register_sale";
-import { Management_employee } from "@/app/employee_management";
 import { Sales_records } from "@/app/salesrecords";
 import {  useUser } from "@/lib/context/Usercontext";
+import { useState } from "react";
 
 
 

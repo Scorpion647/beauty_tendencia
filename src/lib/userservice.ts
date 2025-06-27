@@ -2,7 +2,7 @@
 
 import { supabase } from "./supabaseClient";
 
-type Role = "admin" | "employee" | "guest";
+
 
 interface CreateUserPayload {
   nombres: string;

@@ -3,7 +3,6 @@
 import { useState, Fragment, JSX } from "react";
 import { IoMdHome } from "react-icons/io";
 import { GiHamburgerMenu } from "react-icons/gi";
-import { FaUserFriends, FaFileInvoiceDollar } from "react-icons/fa";
 import { MdManageAccounts } from 'react-icons/md';
 import { Dropdown, DropdownItem, Tooltip } from "flowbite-react";
 import { useUser } from "@/lib/context/Usercontext";
@@ -68,6 +67,7 @@ export default function DashboardLayout() {
   ];
 
   const employeeItems: MenuItem[] = [
+
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];

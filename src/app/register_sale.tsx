@@ -51,7 +51,9 @@ export const Register_sale = () => {
     const { user, loading } = useUser(); // Aquí obtienes el user directamente
     const [visible, setVisible] = useState(false);
 
-
+if (loading) {
+    return <div>Cargando...</div>;
+  }
 
     interface User {
         id: string;
@@ -66,7 +68,7 @@ export const Register_sale = () => {
 
 
 
-    const [users, setUsers] = useState<User[]>([]);
+
 
     const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +76,7 @@ export const Register_sale = () => {
         // Traer primera página con 100 usuarios
         listUsers(1, 100)
             .then((data) => {
-                setUsers(data);
+
 
                 // Aquí armamos el array de empleados con la estructura solicitada
                 const empleadosFormateados = data.map((user) => {
@@ -111,6 +113,7 @@ export const Register_sale = () => {
                 console.log(error)
             }
         }
+        console.log(error)
         getservice()
     }, [])
 

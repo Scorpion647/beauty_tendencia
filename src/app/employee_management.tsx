@@ -1,5 +1,5 @@
 
-import { createUser, listUsers } from "@/lib/userservice";
+import { listUsers } from "@/lib/userservice";
 import { Dropdown, DropdownItem, Tooltip } from "flowbite-react";
 import { useState, useEffect } from "react";
 import { FaUserEdit } from "react-icons/fa";

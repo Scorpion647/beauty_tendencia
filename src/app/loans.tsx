@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Select from "react-dropdown-select";
 import { listUsers } from "@/lib/userservice";
-import { useUser } from "@/lib/context/Usercontext";
 import { createLoanRecord, getEmployeeDebt } from "@/lib/supabase/loans";
 
 interface EmpleadoOption {
@@ -16,7 +15,6 @@ export const LoanOrAbono = () => {
   const [monto, setMonto] = useState("");
   const [tipoOperacion, setTipoOperacion] = useState<"prestamo" | "abono">("prestamo");
   const [deudaActual, setDeudaActual] = useState<number | null>(null);
-  const { user } = useUser();
 
   useEffect(() => {
     listUsers(1, 100).then((data) => {
@@ -54,46 +52,44 @@ export const LoanOrAbono = () => {
       <div className="w-[90%] sm:w-[60%] bg-white border-2 border-gray-700 rounded-xl shadow-md p-5">
         <div className=" bg-pink-800">
           <p className="text-3xl text-center font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent mb-6">
-          Prestamos
-        </p>
+            Prestamos
+          </p>
         </div>
-        
+
 
         <div className="mb-4">
           <Select
-                      options={empleados}
-                      values={selectedEmpleado}
-                      onChange={(selected) => setSelectedEmpleado(selected)}
-                      placeholder="Selecciona un empleado"
-                      className="text-black border border-gray-700 rounded"
-                      dropdownHandle={false}
-                      searchable
-                      clearable onSelect={function (value: EmpleadoOption[]): void {
-                          throw new Error("Function not implemented.");
-                      } } onDeselect={function (value: EmpleadoOption[]): void {
-                          throw new Error("Function not implemented.");
-                      } }          />
+            options={empleados}
+            values={selectedEmpleado}
+            onChange={(selected) => setSelectedEmpleado(selected)}
+            placeholder="Selecciona un empleado"
+            className="text-black border border-gray-700 rounded"
+            dropdownHandle={false}
+            onSelect={(selected) => {
+              console.log("Seleccionado:", selected);
+            }}
+            onDeselect={(deselected) => {
+              console.log("Deseleccionado:", deselected);
+            }} />
         </div>
 
         <div className="flex justify-between mb-4">
           <button
             onClick={() => setTipoOperacion("prestamo")}
-            className={`w-[48%] py-2 rounded font-semibold transition-all duration-200 ${
-              tipoOperacion === "prestamo"
+            className={`w-[48%] py-2 rounded font-semibold transition-all duration-200 ${tipoOperacion === "prestamo"
                 ? "bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black"
                 : "bg-pink-800 text-yellow-300"
-            }`}
+              }`}
           >
             Préstamo
           </button>
 
           <button
             onClick={() => setTipoOperacion("abono")}
-            className={`w-[48%] py-2 rounded font-semibold transition-all duration-200 ${
-              tipoOperacion === "abono"
+            className={`w-[48%] py-2 rounded font-semibold transition-all duration-200 ${tipoOperacion === "abono"
                 ? "bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black"
                 : "bg-pink-800 text-yellow-300"
-            }`}
+              }`}
           >
             Abono
           </button>

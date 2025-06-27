@@ -406,7 +406,12 @@ useEffect(() => {
   const map = new Map<string | number, { totalPrestamos: number; totalAbonos: number }>();
   loanRecords.forEach(({ user_id, monto, tipo_operacion }) => {
     const entry = map.get(user_id) ?? { totalPrestamos: 0, totalAbonos: 0 };
-    tipo_operacion === 'prestamo' ? (entry.totalPrestamos += monto) : (entry.totalAbonos += monto);
+    if (tipo_operacion === 'prestamo') {
+  entry.totalPrestamos += monto;
+} else {
+  entry.totalAbonos += monto;
+}
+
     map.set(user_id, entry);
   });
 

@@ -20,6 +20,7 @@ import { LoanOrAbono } from "@/app/loans";
 
 
 
+
 type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "Loans" | "Logout";
 
 interface MenuItem {
@@ -95,6 +96,7 @@ export default function DashboardLayout() {
       {/* Sidebar para pantallas sm+ */}
       <aside className="hidden sm:flex flex-col w-[5%] bg-pink-800">
         <div className="flex items-center justify-center h-[8%]">
+
           <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
         </div>
         <nav className="flex flex-col justify-evenly items-center h-[92%]">

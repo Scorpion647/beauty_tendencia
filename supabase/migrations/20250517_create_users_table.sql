@@ -2,6 +2,7 @@
 CREATE TYPE public.user_role AS ENUM (
   'admin',
   'employee',
+  'cashier',
   'guest'
 );
 

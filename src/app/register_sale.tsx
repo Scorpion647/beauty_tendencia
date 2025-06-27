@@ -1,9 +1,11 @@
-import { Dropdown, DropdownItem } from "flowbite-react"
+import { Dropdown, DropdownItem, Toast, ToastToggle } from "flowbite-react"
 import { useState, useEffect } from "react";
 import Select from "react-dropdown-select";
 import { listUsers } from "@/lib/userservice";
 import { useUser } from "@/lib/context/Usercontext";
 import { createSaleRecord } from '@/lib/supabase/sales';
+import { getAllServices } from "@/lib/supabase/services";
+import { HiFire } from "react-icons/hi";
 
 
 
@@ -33,20 +35,22 @@ function formatCurrency(
 
 type EmpleadoOption = { label: string; value: string; id: string; };
 
-const servicios = ["Manicura", "Pedicura", "Pelo", "Planchado"];
 
-const opciones = servicios.map(s => ({ label: s, value: s }));
+
+
 
 
 export const Register_sale = () => {
-
+    const [servicios, setservicios] = useState<string[]>([]);
     const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
     const metodos = ["Efectivo", "Bold", "Transferencia"];
     const [items, setItems] = useState<ServicioItem[]>([]);
-    const [Cant, setCant] = useState(0)
+    const [Cant, setCant] = useState(1)
     const [Price, setPrice] = useState<number>(0);
     const [rawPrice, setRawPrice] = useState<string>('');
     const { user, loading } = useUser(); // Aquí obtienes el user directamente
+    const [visible, setVisible] = useState(false);
+
 
 
     interface User {
@@ -67,34 +71,48 @@ export const Register_sale = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-    // Traer primera página con 100 usuarios
-    listUsers(1, 100)
-        .then((data) => {
-            setUsers(data);
+        // Traer primera página con 100 usuarios
+        listUsers(1, 100)
+            .then((data) => {
+                setUsers(data);
 
-            // Aquí armamos el array de empleados con la estructura solicitada
-            const empleadosFormateados = data.map((user) => {
-                const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
+                // Aquí armamos el array de empleados con la estructura solicitada
+                const empleadosFormateados = data.map((user) => {
+                    const nombre = user.nombres.charAt(0).toUpperCase() + user.nombres.slice(1).toLowerCase();
 
-                const inicialesApellidos = user.apellidos
-                    .split(' ')
-                    .filter((palabra: string) => palabra.trim() !== '') // evita errores si hay espacios extra
-                    .map((palabra: string) => palabra.charAt(0).toUpperCase())
-                    .join('.') + '.';
+                    const inicialesApellidos = user.apellidos
+                        .split(' ')
+                        .filter((palabra: string) => palabra.trim() !== '') // evita errores si hay espacios extra
+                        .map((palabra: string) => palabra.charAt(0).toUpperCase())
+                        .join('.') + '.';
 
-                return {
-                    label: `${nombre} ${inicialesApellidos}`,
-                    value: `${nombre} ${inicialesApellidos}`,
-                    id: user.id
-                };
+                    return {
+                        label: `${nombre} ${inicialesApellidos}`,
+                        value: `${nombre} ${inicialesApellidos}`,
+                        id: user.id
+                    };
+                });
+
+                setEmpleados(empleadosFormateados);
+            })
+            .catch((err) => {
+                setError(err instanceof Error ? err.message : String(err));
             });
+    }, []);
 
-            setEmpleados(empleadosFormateados);
-        })
-        .catch((err) => {
-            setError(err instanceof Error ? err.message : String(err));
-        });
-}, []);
+    useEffect(() => {
+        const getservice = async () => {
+            const service = await getAllServices()
+            try {
+                if (service.length > 0) {
+                    setservicios(service)
+                }
+            } catch (error) {
+                console.log(error)
+            }
+        }
+        getservice()
+    }, [])
 
 
 
@@ -158,6 +176,7 @@ export const Register_sale = () => {
 
         if (response.success) {
             console.log('Venta creada con éxito:', response.data);
+            setVisible(true)
             setCant(0)
             setPrice(0)
             setValues([]);
@@ -165,30 +184,47 @@ export const Register_sale = () => {
             setItems([]);
             setSelectedEmpleado("");
             setselectedMetodo("");
+            setTimeout(() => setVisible(false), 3000);
         } else {
             console.error('Error al crear la venta:', response.error.message, response.error.details);
             setError(response.error.message);
         }
     };
 
+    const opciones = servicios.map(s => ({ label: s, value: s }));
+
 
     return (
         <div className=" w-full h-full flex flex-row">
             <div className=" flex flex-col w-[100%]  h-full  items-center justify-center ">
-                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex  sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-black  items-center justify-center">
+                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex  sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-gray-700  items-center justify-center">
                     <div className=" w-[95%] h-[95%] ">
-                        <div className=" border-2 border-black rounded-t-md w-full h-[6%] sm:h-[10%] text-center bg-pink-600"><p className=" text-white text-3xl font-semibold">Registrar venta</p></div>
+                        <div className=" border-2 border-gray-700 rounded-t-md w-full h-[6%] sm:h-[10%] flex items-center justify-center bg-pink-800"><p className="  text-3xl font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Registrar venta</p></div>
 
                         <div className="flex h-[89%] sm:h-[85%] flex-col sm:flex-row w-full sm:justify-evenly items-center justify-center">
                             <div className=" sm:pr-5 pb-5 pt-2 sm:pt-5 w-full sm:w-[80%] h-[70%] sm:h-full flex flex-col    items-center justify-center">
-                                <div className=" border-2 border-black  w-full h-[70%] sm:h-full flex flex-row rounded-t-md   bg-red-100 items-center justify-center">
+                                <div className=" border-2 border-gray-700  w-full h-[70%] sm:h-full flex flex-row rounded-t-md   bg-red-100 items-center justify-center">
                                     <div className=" flex flex-col w-[50%] gap-2.5  items-center justify-center">
                                         <div className=" w-[80%] ">
+                                            {visible && (
+                                                <div className="fixed bottom-4 right-4 z-50">
+                                                    <Toast>
+                                                        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-200 text-pink-600 dark:bg-pink-600 dark:text-cyan-200">
+                                                            <HiFire className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="ml-3 text-sm  font-bold">
+                                                            Venta Registrada con exito
+                                                        </div>
+                                                        {/* Muestra el icono de cerrar */}
+                                                        <ToastToggle onClick={() => setVisible(false)} />
+                                                    </Toast>
+                                                </div>
+                                            )}
                                             <Select
-                                                className="w-[100%] h-10 border text-black border-black rounded bg-white"
+                                                className="w-[100%] h-10 border text-black border-gray-700 rounded bg-white"
                                                 options={empleados}
                                                 values={
-                                                    user?.userProfile?.rol === "admin"
+                                                    user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "cashier"
                                                         ? values2
                                                         : [{
                                                             label: (user?.userProfile?.nombres ?? "") + " " + (user?.userProfile?.apellidos ?? ""),
@@ -196,7 +232,7 @@ export const Register_sale = () => {
                                                             id: (user?.userProfile?.id ?? ""),
                                                         }]
                                                 }
-                                                disabled={user?.userProfile?.rol === "employee"}
+                                                disabled={user?.userProfile?.rol === "employee" || items.length > 0}
                                                 onChange={(selected) => {
                                                     setValues2(selected);
                                                     if (selected.length > 0) {
@@ -219,10 +255,10 @@ export const Register_sale = () => {
                                             />
                                         </div>
                                         <div className=" w-[80%]">
-                                            <p className=" text-black text-xs">Servicio</p>
+                                            <p className=" text-black text-xs font-semibold">Servicio</p>
                                             <Select
                                                 disabled={selectedEmpleado === ""}
-                                                className=" w-[100%] h-10  border text-black border-black rounded bg-white"
+                                                className=" w-[100%] h-10  border text-black border-gray-700 rounded bg-white"
                                                 options={opciones}
                                                 values={values}
                                                 onChange={setValues}
@@ -239,7 +275,7 @@ export const Register_sale = () => {
                                                 }} />
                                         </div>
                                         <div className=" w-[80%] flex flex-col">
-                                            <p className=" text-black text-xs">Precio Servicio</p>
+                                            <p className=" text-black text-xs font-semibold">Precio Servicio</p>
                                             <input
                                                 disabled={selectedEmpleado === ""}
                                                 placeholder="Precio"
@@ -269,7 +305,7 @@ export const Register_sale = () => {
                                     </div>
                                     <div className=" flex flex-col w-[50%] gap-2.5 items-center justify-center" >
                                         <div className=" w-[80%]  flex justify-center">
-                                            <Dropdown color="pink" className=" max-w-sm sm:w-full bg-pink-600 text-xs truncate" label={selectedMetodo || "Metodo de pago"}>
+                                            <Dropdown color="pink" className=" max-w-sm sm:w-full bg-pink-800 text-xs truncate text-yellow-300 font-bold" label={selectedMetodo || "Metodo de pago"}>
                                                 {metodos.map((metodo) => (
                                                     <DropdownItem key={metodo} onClick={() => setselectedMetodo(metodo)}>
                                                         <div className="flex items-center gap-2">
@@ -288,19 +324,19 @@ export const Register_sale = () => {
                                         </div>
 
                                         <div className=" w-[80%]">
-                                            <p className=" text-black text-xs">Cantidad Servicio</p>
+                                            <p className=" text-black text-xs font-semibold">Cantidad Servicio</p>
                                             <input
                                                 disabled={selectedEmpleado === ""}
                                                 className=" w-[100%] h-10   text-black  rounded bg-white"
                                                 placeholder="Cantidad"
                                                 type="number"
-                                                value={Cant > 0 ? Cant : ""}
+                                                value={!values[0]?.value ? "" : Cant}
                                                 onChange={(e) => setCant(parseFloat(e.target.value))}
                                             />
                                         </div>
 
                                         <div className=" w-[80%]">
-                                            <p className=" text-black text-xs">Ganancia por Servicio</p>
+                                            <p className=" text-black text-xs font-semibold">Ganancia por Servicio</p>
                                             <input
                                                 disabled={true}
                                                 value={!Number.isNaN((Cant * Price) * 0.5) ? formatCurrency((Cant * Price) * 0.5) : "$ " + 0}
@@ -315,17 +351,17 @@ export const Register_sale = () => {
                                     </div>
 
                                 </div>
-                                <div className=" rounded-b-md border-2 border-black border-t-0 justify-center w-full h-[30%] bg-amber-300 flex flex-col">
-                                    <p className=" px-2.5 text-black">{"Total " + formatCurrency(totalPrecioXCantidad)}</p>
-                                    <p className=" px-2.5 text-black">{"Total Ganado " + formatCurrency(totalGanado)}</p>
+                                <div className=" rounded-b-md border-2 border-gray-700 border-t-0 justify-center w-full h-[30%] bg-amber-300 flex flex-col">
+                                    <p className=" px-2.5 text-black font-semibold">{"Total " + formatCurrency(totalPrecioXCantidad)}</p>
+                                    <p className=" px-2.5 text-black font-semibold">{"Total Ganado " + formatCurrency(totalGanado)}</p>
                                 </div>
                             </div>
 
                             <div className="  sm:w-[20%] sm:h-full h-[30%] w-full pb-5 sm:pt-5 flex flex-col">
-                                <div className=" text-center text-black text-2xl border-2 rounded-t-md border-black bg-white"><p>Servicios</p></div>
-                                <div className=" bg-white w-full h-full border-2 rounded-b-md border-black border-t-0  overflow-auto flex flex-col gap-0.5">
+                                <div className=" text-center text-black text-2xl border-2 rounded-t-md border-gray-700 bg-pink-800"><p className=" font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Servicios</p></div>
+                                <div className=" bg-white w-full h-full border-2 rounded-b-md border-gray-700 border-t-0  overflow-auto flex flex-col gap-0.5">
                                     {items.map(item => (
-                                        <div key={item.id} className="pl-2.5 text-start content-center w-full h-[30%] sm:h-[10%] bg-pink-700 flex flex-row">
+                                        <div key={item.id} className="pl-2.5 mb-0.5 mt-0.5 text-start content-center w-full h-[30%] sm:h-[10%] bg-pink-600 flex flex-row">
                                             <div className="text-start content-center w-[90%] h-full">
                                                 <p className="text-sm sm:text-xs">{item.servicio}</p>
                                             </div>
@@ -341,15 +377,15 @@ export const Register_sale = () => {
                         <div className=" flex flex-row w-[100%] sm:w-[80%] h-[5%] ">
 
                             <div className=" justify-center w-full h-full flex flex-row">
-                                <div className=" text-center  w-[50%] h-full"><button disabled={Cant === 0 || Price === 0 || !values} onClick={() =>
+                                <div className=" text-center  w-[50%] h-full"><button disabled={Cant === 0 || Price === 0 || !values || selectedMetodo === ""} onClick={() =>
                                     addItem({
                                         servicio: values[0].value,
                                         cantidad: Cant,
                                         precio: Price,
                                         ganado: (Price * Cant) * 0.5
                                     })
-                                } className=" cursor-pointer  bg-pink-600 rounded-md w-[50%] h-full">Agregar</button></div>
-                                <div className="text-center w-[50%] h-full"><button onClick={Make_sales} className="  bg-pink-600 rounded-md w-[50%] h-full">Finalizar</button></div>
+                                } className={`   rounded-md w-[50%] h-full  font-semibold ${(Cant === 0 || Price === 0 || !values || selectedMetodo === "") ? "bg-gray-700 text-gray-300" : "bg-pink-600 cursor-pointer text-yellow-300"}`}>Agregar</button></div>
+                                <div className="text-center w-[50%] h-full"><button onClick={Make_sales} className={`  rounded-md w-[50%] h-full font-semibold ${items.length > 0 ? "bg-pink-600 cursor-pointer" : "bg-gray-700 text-gray-300"}`}>Finalizar</button></div>
                             </div>
                         </div>
                     </div>
@@ -365,7 +401,7 @@ export const Register_sale = () => {
 
 /*
 
-<Dropdown color="pink" className=" max-w-sm sm:max-w-sm w-full bg-pink-600 text-xs " label={selectedEmpleado || "Empleado"}>
+<Dropdown color="pink" className=" max-w-sm sm:max-w-sm w-full bg-pink-800 text-xs " label={selectedEmpleado || "Empleado"}>
                                                 {empleados.map((empleado) => (
                                                     <DropdownItem key={empleado} onClick={() => setSelectedEmpleado(empleado)}>
                                                         <div className="flex items-center gap-2">

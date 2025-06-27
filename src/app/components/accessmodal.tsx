@@ -6,11 +6,15 @@ export interface ModalProps {
   isOpen: boolean;
   /** Callback para cerrar el modal */
   onClose: () => void;
+
+  Width?: string;
+  Height?: string;
+  Bg?: string
   /** Contenido interno del modal */
   children: ReactNode;
 }
 
-export default function Accessmodal({ isOpen, onClose, children }: ModalProps) {
+export default function Accessmodal({ isOpen, onClose,Width,Height,Bg, children }: ModalProps) {
 if (!isOpen) return null;
 
   return (
@@ -19,7 +23,13 @@ if (!isOpen) return null;
   onClick={onClose} // se dispara al hacer clic en el fondo
 >
   <div
-    className="bg-white rounded-lg shadow-lg max-w-[700px] w-[80%] p-6 relative"
+    className={` ${Bg ? Bg : "bg-white"} rounded-lg shadow-lg 
+    ${Width ? `max-w-[${Width}]` : 'max-w-[700px]'} 
+    ${Height ? `max-h-[${Height}]` : ''} 
+    ${Width ? 'w-auto' : 'w-[80%]'} 
+    p-6 
+    relative
+  `}
     onClick={(e) => e.stopPropagation()} // evita que el clic se propague y cierre el modal si se hace dentro
   >
     <button

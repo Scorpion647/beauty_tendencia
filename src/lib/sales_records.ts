@@ -1,4 +1,9 @@
+import { toZonedTime, format } from 'date-fns-tz';
 import { supabase } from "@/lib/supabaseClient";
+
+// define tu zona
+const timeZone = 'America/Bogota';
+
 
 interface SalesItem {
   service_name: string;
@@ -12,6 +17,7 @@ export type SalesRecord = {
   payment_method: string;  // Añadir esto
   sale_date: string;       // Añadir esto
   sales_items: SalesItem[];
+  user_id: string;
 };
 
 interface UserSalesData {
@@ -21,44 +27,46 @@ interface UserSalesData {
   sales_records: SalesRecord[];
 }
 
+
+
 function isWithinFilter(
   saleDate: string,
   filterType: string,
   options: { day?: string; week?: number; month?: number; year?: number }
 ): boolean {
-  const sale = new Date(saleDate);
-  const today = new Date();
+ const zonedSale = toZonedTime(new Date(saleDate), timeZone);
+  const zonedToday = toZonedTime(new Date(), timeZone);
 
   switch (filterType) {
     case "today":
       return (
-        sale.getDate() === today.getDate() &&
-        sale.getMonth() === today.getMonth() &&
-        sale.getFullYear() === today.getFullYear()
+        zonedSale.getDate() === zonedToday.getDate() &&
+        zonedSale.getMonth() === zonedToday.getMonth() &&
+        zonedSale.getFullYear() === zonedToday.getFullYear()
       );
     case "specific_day":
-      return sale.toISOString().split("T")[0] === options.day;
+      return format(zonedSale, 'yyyy-MM-dd') === options.day;
     case "specific_week":
-      const saleWeek = getWeekNumber(sale);
+      const saleWeek = getWeekNumber(zonedSale);
       return (
         saleWeek === options.week &&
-        sale.getFullYear() === (options.year || today.getFullYear())
+        zonedSale.getFullYear() === (options.year || zonedToday.getFullYear())
       );
     case "specific_month":
       return (
-        sale.getMonth() + 1 === options.month &&
-        sale.getFullYear() === (options.year || today.getFullYear())
+        zonedSale.getMonth() + 1 === options.month &&
+        zonedSale.getFullYear() === (options.year || zonedToday.getFullYear())
       );
     case "current_week":
-      const currentWeek = getWeekNumber(today);
+      const currentWeek = getWeekNumber(zonedToday);
       return (
-        getWeekNumber(sale) === currentWeek &&
-        sale.getFullYear() === today.getFullYear()
+        getWeekNumber(zonedSale) === currentWeek &&
+        zonedSale.getFullYear() === zonedToday.getFullYear()
       );
     case "current_month":
       return (
-        sale.getMonth() === today.getMonth() &&
-        sale.getFullYear() === today.getFullYear()
+        zonedSale.getMonth() === zonedToday.getMonth() &&
+        zonedSale.getFullYear() === zonedToday.getFullYear()
       );
     default:
       return true;
@@ -78,33 +86,42 @@ export async function listSalesSummary(
   userId?: string
 ): Promise<UserSalesData[]> {
   // 1. Traer todos los usuarios
-  const { data: users, error: userError } = await supabase.from("users").select("id, nombres");
+  let { data: users, error: userError } =
+    await supabase.from("users").select("id, nombres");
   if (userError) throw new Error(`Error al obtener usuarios: ${userError.message}`);
+  users = users ?? [];
+
+  // 1.1 Filtrar usuarios si se especifica userId
+  const relevantUsers = userId
+    ? users.filter((user) => user.id === userId)
+    : users;
 
   // 2. Traer todos los registros de venta
-  let { data: salesRecords, error: salesError } = await supabase.from("sales_records").select("*");
+  let { data: salesRecords, error: salesError } =
+    await supabase.from("sales_records").select("*");
   if (salesError) throw new Error(`Error al obtener ventas: ${salesError.message}`);
-  salesRecords = salesRecords ?? []; // Aseguramos que siempre sea un array
+  salesRecords = salesRecords ?? [];
+
   // 3. Traer todos los ítems de venta
-  const { data: salesItems, error: itemsError } = await supabase.from("sales_items").select("*");
+  const { data: salesItems, error: itemsError } =
+    await supabase.from("sales_items").select("*");
   if (itemsError) throw new Error(`Error al obtener ítems de venta: ${itemsError.message}`);
 
-
-  // 4. Filtrar por usuario si se especifica
+  // 4. Filtrar por usuario en los registros si se especifica
   if (userId) {
-    salesRecords = salesRecords.filter((sale) => sale.user_id === userId);
+    salesRecords = salesRecords.filter((zonedSale) => zonedSale.user_id === userId);
   }
 
   // 5. Filtrar por fecha
-  const filteredSales = salesRecords.filter((sale) =>
-    isWithinFilter(sale.sale_date, filterType, options)
+  const filteredSales = salesRecords.filter((zonedSale) =>
+    isWithinFilter(zonedSale.sale_date, filterType, options)
   );
 
   // 6. Enlazar ítems con ventas
-  const salesWithItems = filteredSales.map((sale) => ({
-    ...sale,
-    sales_items: salesItems
-      .filter((item) => item.sale_id === sale.id)
+  const salesWithItems = filteredSales.map((zonedSale) => ({
+    ...zonedSale,
+    sales_items: (salesItems ?? [])
+      .filter((item) => item.sale_id === zonedSale.id)
       .map((item) => ({
         service_name: item.service_name,
         service_cost: item.service_cost,
@@ -112,32 +129,32 @@ export async function listSalesSummary(
       })),
   }));
 
-  // 7. Agrupar por usuario
-  const result: UserSalesData[] = users.map((user) => {
-    const userSales = salesWithItems.filter((sale) => sale.user_id === user.id);
+  // 7. Agrupar por usuario filtrado
+  const result: UserSalesData[] = relevantUsers.map((user) => {
+    const userSales = salesWithItems.filter((zonedSale) => zonedSale.user_id === user.id);
 
-    const total = userSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-    const Ganado = userSales.reduce((sum, sale) => sum + sale.earnings_amount, 0);
+    const total = userSales.reduce((sum, zonedSale) => sum + zonedSale.total_amount, 0);
+    const Ganado = userSales.reduce((sum, zonedSale) => sum + zonedSale.earnings_amount, 0);
 
     return {
       name: user.nombres,
       total,
       Ganado,
-      sales_records: userSales.map((sale) => ({
-        sale_code: sale.sale_code,
-        total_amount: sale.total_amount,
-        earnings_amount: sale.earnings_amount,
-        sale_date: sale.sale_date,
-        user_id: sale.user_id,
-        payment_method: sale.payment_method, // ✅ Agregado
-        sales_items: sale.sales_items,
-      }))
-      ,
+      sales_records: userSales.map((zonedSale) => ({
+        sale_code: zonedSale.sale_code,
+        total_amount: zonedSale.total_amount,
+        earnings_amount: zonedSale.earnings_amount,
+        sale_date: zonedSale.sale_date,
+        user_id: zonedSale.user_id,
+        payment_method: zonedSale.payment_method,
+        sales_items: zonedSale.sales_items,
+      })),
     };
   });
 
   return result;
 }
+
 
 
 

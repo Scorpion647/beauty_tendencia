@@ -528,9 +528,9 @@ export const Sales_records = () => {
           </div>
           <div className='w-full h-[60%] flex flex-col'>
             <div className='h-[12%] w-full flex flex-row gap-0.5'>
-              <div className=' w-[350px] max-w-[50%] sm:max-w-[20%] h-[100%]'>
+              <div className=' w-[350px] max-w-[50%] sm:max-w-[20%] h-full'>
                 <Select
-
+              
                   className=" h-[50px] sm:h-[100%] border text-black border-black  rounded bg-white"
                   options={empleados}
                   values={
@@ -756,24 +756,24 @@ export const Sales_records = () => {
             </div>
           </div>
           <Accessmodal isOpen={isOpen} onClose={closeModal} Bg='bg-pink-800'>
-            <div className="hidden sm:block flex-row gap-0   font-bold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-              <p className=" text-3xl relative inline-block  font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent
+            <div className=" flex-row gap-0   font-bold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+              <p className=" text-1xl sm:text-3xl relative inline-block  font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent
   after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-full after:bg-gradient-to-r after:from-yellow-300 after:via-yellow-200 after:to-yellow-400">Desgloce de servicios</p>
             </div>
             <div className=' flex flex-row gap-0.5'>
-              <p className=' text-white text-1xl'>Atendido por: </p>
-              <p className=' text-white text-1xl font-bold'>{empleados.find(e => e.id === s_items?.user_id)?.value ?? s_items?.user_id}</p>
+              <p className=' text-white text-s sm:text-1xl'>Atendido por: </p>
+              <p className=' text-white text-s truncate sm:text-1xl font-bold'>{empleados.find(e => e.id === s_items?.user_id)?.value ?? s_items?.user_id}</p>
             </div>
             {s_items?.sales_items.map((sale, index) => (
               <div key={index} className=' py-0.5'>
                 <li
                   className="flex items-center space-x-4 p-2 border rounded w-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400"
                 >
-                  <span className="font-semibold w-[40%] truncate text-black text-[50%] sm:text-[90%]">Servicio: {sale.service_name}</span>
-                  <span className="w-[30%] truncate text-black text-[50%] sm:text-[90%]">Cantidad: {sale.service_quantity}</span>
-                  <span className="w-[30%] truncate text-black text-[90%]">Total: {formatCurrency(sale.service_cost)}</span>
+                  <span className={`${user?.userProfile?.rol !== "admin" ? "w-[20%] sm:w-[40%]" : "w-[33%] sm:w-[40%]"} font-semibold  break-words text-black text-[50%] sm:text-[90%]`}>Servicio: {sale.service_name}</span>
+                  <span className={`${user?.userProfile?.rol !== "admin" ? "w-[20%] sm:w-[30%]" : "w-[33%] sm:w-[30%] "} truncate text-black text-[50%] sm:text-[90%]`}>Cantidad: {sale.service_quantity}</span>
+                  <span className={` ${user?.userProfile?.rol !== "admin" ? "w-[30%]" : "w-[34%] sm:w-[30%]"}  truncate text-black text-[50%] sm:text-[90%]`}>Total: {formatCurrency(sale.service_cost)}</span>
                   {user?.userProfile?.rol !== "admin" && (
-                    <span className="w-[30%] truncate text-black text-[90%]">Total: {formatCurrency(sale.service_cost)}</span>
+                    <span className={`sm:w-[30%]  truncate text-black text-[50%] sm:text-[90%]`}>Total: {formatCurrency(sale.service_cost)}</span>
                   )}
                 </li>
               </div>

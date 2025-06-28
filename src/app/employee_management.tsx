@@ -219,7 +219,7 @@ export const Management_employee = () => {
                             </div>
                             <div className=" w-full h-[95%] flex flex-col sm:h-[90%]">
                                 {users.map((u) => (
-                                    <div key={u.id} className=" px-2.5 w-full h-[15%] sm:h-[10%] flex flex-row justify-center items-center border-t-2 border-b-2 border-gray-400 bg-white mb-0.5 mt-0.5">
+                                    <div key={u.id} className=" px-2.5 w-full h-[15%] sm:h-[8%] flex flex-row justify-center items-center border-t-2 border-b-2 border-gray-400 bg-white mb-0.5 mt-0.5">
                                         <div className=" w-[80%] h-full justify-center items-center">
                                             <p className=" text-sm sm:text-lg  text-gray-800 font-semibold  ">{u.nombres} {u.apellidos}</p>
                                         </div>

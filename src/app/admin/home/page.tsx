@@ -36,14 +36,14 @@ const SECTION_COMPONENTS: Record<SectionKey, JSX.Element> = {
   Home: (
     <div className="flex flex-col w-full h-full items-center justify-center  ">
       <img src="/Tendencia.png" width={100} height={100} alt="Tendencia" />
-      <p  className="text-4xl font-extrabold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">TENDENCIAS</p>
+      <p className="text-4xl font-extrabold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">TENDENCIAS</p>
       <p className=" text-black font-semibold">Software administrativo</p>
     </div>
   ),
   Employee: <Management_employee />,
   Sales: <Register_sale />,
   Sales_Records: <Sales_records />,
-  Loans: <LoanOrAbono/>,
+  Loans: <LoanOrAbono />,
   Logout: <div>– aquí iría la lógica de cierre de sesión –</div>,
 };
 
@@ -63,7 +63,7 @@ export default function DashboardLayout() {
     { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
     { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
-    { key: "Loans", label: "Prestamos",Icon: GiPiggyBank },
+    { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
@@ -83,7 +83,7 @@ export default function DashboardLayout() {
     { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
     { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
-    { key: "Loans", label: "Prestamos",Icon: GiPiggyBank },
+    { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
@@ -104,18 +104,18 @@ export default function DashboardLayout() {
           <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
         </div>
         <nav className="flex flex-col justify-evenly items-center h-[92%]">
-          {menuItems.map(({ key,label, Icon }) => (
+          {menuItems.map(({ key, label, Icon }) => (
             <Fragment key={key}>
               {Icon ? (
                 <Tooltip content={label}>
                   <div
-                  onClick={() => handleSectionChange(key)}
-                  className=" cursor-pointer w-[40px] h-[40px] flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 shadow-md"
-                >
-                  <Icon className="text-black" size={20} />
-                </div>
+                    onClick={() => handleSectionChange(key)}
+                    className=" cursor-pointer w-[40px] h-[40px] flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 shadow-md"
+                  >
+                    <Icon className="text-black" size={20} />
+                  </div>
                 </Tooltip>
-                
+
 
 
               ) : (
@@ -141,7 +141,31 @@ export default function DashboardLayout() {
             <p className="text-xl">{user?.userProfile?.nombres} {user?.userProfile?.apellidos}</p>
           </div>
           <div className="sm:hidden flex items-center justify-between w-full">
-            <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
+            <div className="flex flex-row gap-3">
+              <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
+
+              <div className="flex flex-col justify-end gap-0 font-bold">
+                <div className="mt-auto">
+                  <p
+                    className="text-[85%] relative inline-block font-bold 
+        bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 
+        bg-clip-text text-transparent 
+        after:content-[''] after:absolute after:left-0 after:bottom-0 
+        after:h-[3px] after:w-full after:bg-gradient-to-r 
+        after:from-yellow-300 after:via-yellow-200 after:to-yellow-400"
+                  >
+                    {role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}
+                  </p>
+                  <p className="text-[85%] truncate bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+                    {user?.userProfile?.nombres
+                      ? `${user.userProfile.nombres} ${user.userProfile.apellidos}`
+                      : "No Valido"}
+
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <Dropdown arrowIcon={false} inline label={
 
               <GiHamburgerMenu size={30} color="white" />

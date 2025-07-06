@@ -36,7 +36,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, _session) => {
+    } = supabase.auth.onAuthStateChange(() => {
       fetchUser(); // Refresca el usuario automáticamente en login/logout
     });
 

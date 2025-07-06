@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -10,7 +9,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
 
   const handlePasswordReset = async () => {
-    const { data, error } = await supabase.auth.updateUser({
+    const {  error } = await supabase.auth.updateUser({
       password: newPassword,
     });
 

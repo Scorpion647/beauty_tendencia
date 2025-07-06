@@ -1,6 +1,6 @@
 // app/components/DashboardLayout.tsx
 "use client";
-import { useState, Fragment, JSX, useEffect } from "react";
+import { useState, Fragment, JSX } from "react";
 import { IoMdHome } from "react-icons/io";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { MdManageAccounts } from 'react-icons/md';
@@ -56,7 +56,7 @@ const SECTION_COMPONENTS: Record<SectionKey, JSX.Element> = {
 };
 
 export default function DashboardLayout() {
-  const { user, loading } = useUser();
+  const { user} = useUser();
 
   const [activeSection, setActiveSection] = useState<SectionKey>("Home");
 

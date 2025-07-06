@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Accessmodal from "./components/accessmodal";
 import { cursiva, oswald } from "@/app/components/fonts"
@@ -87,15 +87,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState<ColumnData>([]);
   const [hasMore, setHasMore] = useState(false);
-  const carouselRef = useRef<any>(null);
 
-  const handlePrev = () => {
-    carouselRef.current?.slidePrev();
-  };
 
-  const handleNext = () => {
-    carouselRef.current?.slideNext();
-  };
+
 
   useEffect(() => {
     const fetchServicios = async () => {

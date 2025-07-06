@@ -3,7 +3,7 @@
 
 import { useUser } from "@/lib/context/Usercontext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

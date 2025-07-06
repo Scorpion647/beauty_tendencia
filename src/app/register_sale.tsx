@@ -40,10 +40,13 @@ type EmpleadoOption = { label: string; value: string; id: string; };
 
 
 
+
+
 export const Register_sale = () => {
   const { user, loading } = useUser();
 
   // Estados
+  
   const [servicios, setServicios] = useState<string[]>([]);
   const [empleados, setEmpleados] = useState<EmpleadoOption[]>([]);
   const [items, setItems] = useState<ServicioItem[]>([]);
@@ -90,8 +93,9 @@ export const Register_sale = () => {
       try {
         const service = await getAllServices();
         if (service.length > 0) {
-          setServicios(service);
-        }
+  const nombres = service.map((s) => s.nombre); // extraes solo los nombres (string[])
+  setServicios(nombres); // ahora sí encaja con useState<string[]>
+}
       } catch (error) {
         console.log(error);
       }
@@ -151,7 +155,7 @@ export const Register_sale = () => {
 
     if (response.success) {
       setVisible(true);
-      setCant(0);
+      setCant(1);
       setPrice(0);
       setValues([]);
       setRawPrice('');

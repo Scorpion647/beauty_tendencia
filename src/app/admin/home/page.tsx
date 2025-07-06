@@ -1,6 +1,6 @@
 // app/components/DashboardLayout.tsx
 "use client";
-import { useState, Fragment, JSX } from "react";
+import { useState, Fragment, JSX, useEffect } from "react";
 import { IoMdHome } from "react-icons/io";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { MdManageAccounts } from 'react-icons/md';
@@ -15,13 +15,20 @@ import { MdBarChart } from 'react-icons/md';
 import { FaSignOutAlt } from 'react-icons/fa';
 import { GiPiggyBank } from "react-icons/gi";
 import { LoanOrAbono } from "@/app/loans";
+import { ProductServiceManager } from "@/app/management"
+import { MdInventory } from "react-icons/md";
+import LogoutComponent from "@/app/components/LogoutComponent";
+import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
 
 
 
 
 
-type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "Loans" | "Logout";
+
+
+
+type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "ProductServiceManager" | "Loans" | "Logout";
 
 interface MenuItem {
   key: SectionKey;
@@ -43,17 +50,17 @@ const SECTION_COMPONENTS: Record<SectionKey, JSX.Element> = {
   Employee: <Management_employee />,
   Sales: <Register_sale />,
   Sales_Records: <Sales_records />,
+  ProductServiceManager: <ProductServiceManager />,
   Loans: <LoanOrAbono />,
-  Logout: <div>– aquí iría la lógica de cierre de sesión –</div>,
+  Logout: <LogoutComponent />,
 };
 
 export default function DashboardLayout() {
   const { user, loading } = useUser();
+
   const [activeSection, setActiveSection] = useState<SectionKey>("Home");
 
-  if (loading) {
-    return <div>Cargando...</div>;
-  }
+
 
   const role = user?.userProfile?.rol; // p.ej. 'admin' o 'empleado'
 
@@ -62,28 +69,26 @@ export default function DashboardLayout() {
   const adminItems: MenuItem[] = [
     { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
     { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
+    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const employeeItems: MenuItem[] = [
-
+    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const cashierItems: MenuItem[] = [
     { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
+    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const guestItems: MenuItem[] = [
-    { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
-    { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
-    { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
-    { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
     { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
@@ -93,102 +98,108 @@ export default function DashboardLayout() {
     ...(role === "admin" ? adminItems : (role === "employee" ? employeeItems : (role === "cashier" ? cashierItems : guestItems))),
   ];
 
+
+  
+
   const handleSectionChange = (key: SectionKey) => setActiveSection(key);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      {/* Sidebar para pantallas sm+ */}
-      <aside className="hidden sm:flex flex-col w-[5%] bg-pink-800">
-        <div className="flex items-center justify-center h-[8%]">
 
-          <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
-        </div>
-        <nav className="flex flex-col justify-evenly items-center h-[92%]">
-          {menuItems.map(({ key, label, Icon }) => (
-            <Fragment key={key}>
-              {Icon ? (
-                <Tooltip content={label}>
-                  <div
-                    onClick={() => handleSectionChange(key)}
-                    className=" cursor-pointer w-[40px] h-[40px] flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 shadow-md"
-                  >
-                    <Icon className="text-black" size={20} />
-                  </div>
-                </Tooltip>
+    <ProtectedRoute>
+      <div className="flex h-screen overflow-hidden bg-white">
+        {/* Sidebar para pantallas sm+ */}
+        <aside className="hidden sm:flex flex-col w-[5%] bg-pink-800">
+          <div className="flex items-center justify-center h-[8%]">
 
-
-
-              ) : (
-                <p
-                  className="text-white cursor-pointer"
-                  onClick={() => handleSectionChange(key)}
-                >
-                  {menuItems.find((i) => i.key === key)?.label}
-                </p>
-              )}
-            </Fragment>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Contenido principal */}
-      <div className="flex flex-col w-full sm:w-[95%]">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 bg-pink-800 h-[8%]">
-          <div className="hidden sm:block flex-row gap-0   font-bold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-            <p className="relative inline-block  font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent
-  after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-full after:bg-gradient-to-r after:from-yellow-300 after:via-yellow-200 after:to-yellow-400">{role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}</p>
-            <p className="text-xl">{user?.userProfile?.nombres} {user?.userProfile?.apellidos}</p>
+            <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
           </div>
-          <div className="sm:hidden flex items-center justify-between w-full">
-            <div className="flex flex-row gap-3">
-              <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
+          <nav className="flex flex-col justify-evenly items-center h-[92%]">
+            {menuItems.map(({ key, label, Icon }) => (
+              <Fragment key={key}>
+                {Icon ? (
+                  <Tooltip content={label}>
+                    <div
+                      onClick={() => handleSectionChange(key)}
+                      className=" cursor-pointer w-[40px] h-[40px] flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 shadow-md"
+                    >
+                      <Icon className="text-black" size={20} />
+                    </div>
+                  </Tooltip>
 
-              <div className="flex flex-col justify-end gap-0 font-bold">
-                <div className="mt-auto">
+
+
+                ) : (
                   <p
-                    className="text-[85%] relative inline-block font-bold 
+                    className="text-white cursor-pointer"
+                    onClick={() => handleSectionChange(key)}
+                  >
+                    {menuItems.find((i) => i.key === key)?.label}
+                  </p>
+                )}
+              </Fragment>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Contenido principal */}
+        <div className="flex flex-col w-full sm:w-[95%]">
+          {/* Header */}
+          <header className="flex items-center justify-between px-4 bg-pink-800 h-[8%]">
+            <div className="hidden sm:block flex-row gap-0   font-bold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+              <p className="relative inline-block  font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent
+  after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-full after:bg-gradient-to-r after:from-yellow-300 after:via-yellow-200 after:to-yellow-400">{role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}</p>
+              <p className="text-xl">{user?.userProfile?.nombres} {user?.userProfile?.apellidos}</p>
+            </div>
+            <div className="sm:hidden flex items-center justify-between w-full">
+              <div className="flex flex-row gap-3">
+                <img src="/Tendencia.png" width={50} height={50} alt="Tendencia" />
+
+                <div className="flex flex-col justify-end gap-0 font-bold">
+                  <div className="mt-auto">
+                    <p
+                      className="text-[85%] relative inline-block font-bold 
         bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 
         bg-clip-text text-transparent 
         after:content-[''] after:absolute after:left-0 after:bottom-0 
         after:h-[3px] after:w-full after:bg-gradient-to-r 
         after:from-yellow-300 after:via-yellow-200 after:to-yellow-400"
-                  >
-                    {role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}
-                  </p>
-                  <p className="text-[85%] truncate bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
-                    {user?.userProfile?.nombres
-                      ? `${user.userProfile.nombres} ${user.userProfile.apellidos}`
-                      : "No Valido"}
+                    >
+                      {role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}
+                    </p>
+                    <p className="text-[85%] truncate bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+                      {user?.userProfile?.nombres
+                        ? `${user.userProfile.nombres} ${user.userProfile.apellidos}`
+                        : "No Valido"}
 
-                  </p>
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              <Dropdown arrowIcon={false} inline label={
+
+                <GiHamburgerMenu size={30} color="white" />
+
+              }>
+                {menuItems.map(({ key, label }) => (
+                  <DropdownItem key={key} onClick={() => handleSectionChange(key)}>
+                    {label}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
             </div>
+          </header>
 
-            <Dropdown arrowIcon={false} inline label={
+          {/* Sección activa */}
+          <main className="h-[92%] sm:h-[90%] overflow-auto">
+            {SECTION_COMPONENTS[activeSection]}
+          </main>
 
-              <GiHamburgerMenu size={30} color="white" />
-
-            }>
-              {menuItems.map(({ key, label }) => (
-                <DropdownItem key={key} onClick={() => handleSectionChange(key)}>
-                  {label}
-                </DropdownItem>
-              ))}
-            </Dropdown>
-          </div>
-        </header>
-
-        {/* Sección activa */}
-        <main className="h-[92%] sm:h-[90%] overflow-auto">
-          {SECTION_COMPONENTS[activeSection]}
-        </main>
-
-        {/* Footer (solo en sm+) */}
-        <footer className="hidden sm:block bg-pink-800 h-[2%]" />
+          {/* Footer (solo en sm+) */}
+          <footer className="hidden sm:block bg-pink-800 h-[2%]" />
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
 

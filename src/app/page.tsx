@@ -376,15 +376,13 @@ export default function Home() {
           </div>
 
           <div className=' block sm:hidden'>
-            <div className="  pt-10 px-7 flex flex-row items-center justify-center flex-wrap gap-6">
+            <div className="  pt-10 px-7 flex flex-col items-center justify-center flex-wrap gap-6">
               {Servicios.slice(0,6).map((col, index) => (
-                <div key={index} className="flex flex-col items-center w-[25%] gap-2">
-                  <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
+                <div key={index} className="flex items-center ">
+                      <div className="flex items-center ">
                         <button className="bg-pink-800 w-5 h-5"></button>
                         <p className="text-sm font-bold text-pink-600 text-center">{col}</p>
                       </div>
-                  </div>
                 </div>
               ))}
 

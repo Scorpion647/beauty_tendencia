@@ -153,25 +153,45 @@ export default function Home() {
           <div className=' flex w-full justify-center items-center'><p className="text-3xl font-extrabold mb-4 text-black">Lista de servicios</p></div>
 
           {/* Contenedor de 2 columnas */}
-          <div className="flex flex-row gap-8 sm:px-10 justify-between">
-            {/* Columna 1 */}
-            <div className="flex flex-col gap-2 w-1/2">
-              {Servicios.slice(0, Math.ceil(Servicios.length / 2)).map((ser, index) => (
-                <div key={`col1-${index}`} className="flex items-center gap-2">
-                  <button className="bg-pink-800 w-5 h-5" />
-                  <p className="text-sm font-bold text-pink-600 text-center">{ser}</p>
-                </div>
-              ))}
-            </div>
+          <div className='  hidden sm:block  '>
+            <div className=" flex flex-row gap-8 sm:px-10 justify-between">
+              {/* Columna 1 */}
+              <div className="flex flex-col gap-2 w-1/2">
+                {Servicios.slice(0, Math.ceil(Servicios.length / 2)).map((ser, index) => (
+                  <div key={`col1-${index}`} className="flex items-center gap-2">
+                    <button className="bg-pink-800 w-5 h-5" />
+                    <p className="text-sm font-bold text-pink-600 text-center">{ser}</p>
+                  </div>
+                ))}
+              </div>
 
-            {/* Columna 2 */}
-            <div className="flex flex-col gap-2 w-1/2">
-              {Servicios.slice(Math.ceil(Servicios.length / 2)).map((ser, index) => (
-                <div key={`col2-${index}`} className="flex items-center gap-2">
-                  <button className="bg-pink-800 w-5 h-5" />
-                  <p className="text-sm font-bold text-pink-600 text-center">{ser}</p>
-                </div>
-              ))}
+              {/* Columna 2 */}
+              <div className="flex flex-col gap-2 w-1/2">
+                {Servicios.slice(Math.ceil(Servicios.length / 2)).map((ser, index) => (
+                  <div key={`col2-${index}`} className="flex items-center gap-2">
+                    <button className="bg-pink-800 w-5 h-5" />
+                    <p className="text-sm font-bold text-pink-600 text-center">{ser}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+
+          <div className=' block sm:hidden overflow-auto max-h-[300]'>
+            <div className=" flex flex-row gap-8 sm:px-10 justify-between">
+
+              <div className="flex flex-col gap-2 ">
+                {Servicios.map((ser, index) => (
+                  <div key={`col1-${index}`} className="flex items-center gap-2">
+                    <button className="bg-pink-800 w-5 h-5" />
+                    <p className="text-xs font-bold text-pink-600 text-center">{ser}</p>
+                  </div>
+                ))}
+              </div>
+
+
+
             </div>
           </div>
         </div>
@@ -327,21 +347,48 @@ export default function Home() {
           {/*Servicios*/}
           <p className=" pt-20 text-3xl font-extrabold text-pink-600">Servicios</p>
           <p className=" pt-5 px-5 text-black font-bold">Ofrecemos servicios personalizados en un ambiente acogedor, combinando técnicas modernas con atención cercana para que te sientas auténticamente tú</p>
-          <div className="pt-10 px-7 flex flex-row items-center justify-center flex-wrap gap-6">
-            {columns.map((col, index) => (
-              <div key={index} className="flex flex-col items-center w-[25%] gap-2">
-                <div className="flex flex-col gap-1">
-                  {col.map((nombre, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <button className="bg-pink-800 w-5 h-5"></button>
-                      <p className="text-sm font-bold text-pink-600 text-center">{nombre}</p>
-                    </div>
-                  ))}
+          <div className=' hidden sm:block'>
+            <div className="  pt-10 px-7 flex flex-row items-center justify-center flex-wrap gap-6">
+              {columns.map((col, index) => (
+                <div key={index} className="flex flex-col items-center w-[25%] gap-2">
+                  <div className="flex flex-col gap-1">
+                    {col.map((nombre, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <button className="bg-pink-800 w-5 h-5"></button>
+                        <p className="text-sm font-bold text-pink-600 text-center">{nombre}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {hasMore && (
+              {hasMore && (
+                <div className="w-full flex justify-center mt-4">
+                  <button
+                    onClick={openModal3} // define `abrirModal` en el componente
+                    className="text-pink-700 font-bold underline hover:text-pink-900 transition cursor-pointer"
+                  >
+                    Ver todos los servicios
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className=' block sm:hidden'>
+            <div className="  pt-10 px-7 flex flex-row items-center justify-center flex-wrap gap-6">
+              {Servicios.slice(0,6).map((col, index) => (
+                <div key={index} className="flex flex-col items-center w-[25%] gap-2">
+                  <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <button className="bg-pink-800 w-5 h-5"></button>
+                        <p className="text-sm font-bold text-pink-600 text-center">{col}</p>
+                      </div>
+                  </div>
+                </div>
+              ))}
+
+
               <div className="w-full flex justify-center mt-4">
                 <button
                   onClick={openModal3} // define `abrirModal` en el componente
@@ -350,7 +397,7 @@ export default function Home() {
                   Ver todos los servicios
                 </button>
               </div>
-            )}
+            </div>
           </div>
 
 
@@ -395,7 +442,7 @@ export default function Home() {
                 +57 323 4920171
               </a>
 
-              
+
             </div>
           </div>
 

@@ -28,14 +28,19 @@ export async function POST(req: Request) {
         'Content-Length': buffer.length.toString(),
       },
     });
-  } catch (error: any) {
-    // 🚨 Muestra stack en consola del servidor Next.js
-    console.error('💥 Error en /api/report:', error.stack || error);
+  } catch (error: unknown) {
+  console.error('💥 Error en /api/report:', error instanceof Error ? error.stack : error);
 
-    // Siempre respondemos JSON en error
-    return new Response(
-      JSON.stringify({ error: error.message || 'Error generando reporte' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : 'Error generando reporte';
+
+  return new Response(
+    JSON.stringify({ error: message }),
+    { status: 500, headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
 }

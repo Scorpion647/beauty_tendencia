@@ -95,7 +95,7 @@ export const Management_employee = () => {
             });
 
             const contentType = res.headers.get("content-type") || "";
-            let result: any;
+            let result
 
             if (contentType.includes("application/json")) {
                 result = await res.json();

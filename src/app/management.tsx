@@ -127,10 +127,22 @@ export function ProductServiceManager() {
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("🚨 Error en handleGenerate:", error.message);
-            alert(`Ocurrió un error: ${error.message}`);
-        } finally {
+        } catch (error: unknown) {
+            let errorMessage = "Ocurrió un error inesperado";
+
+            if (error instanceof Error) {
+                console.error("🚨 Error en handleGenerate:", error.message);
+                errorMessage = error.message;
+            } else if (typeof error === "string") {
+                console.error("🚨 Error en handleGenerate:", error);
+                errorMessage = error;
+            } else {
+                console.error("🚨 Error en handleGenerate:", JSON.stringify(error));
+            }
+
+            alert(`Ocurrió un error: ${errorMessage}`);
+        }
+        finally {
             setLoading(false);
         }
     };

@@ -376,8 +376,9 @@ export default function Home() {
           </div>
 
           <div className=' block sm:hidden'>
-            <div className="  pt-10 px-7 flex flex-col  flex-wrap gap-6">
-              {Servicios.slice(0,6).map((col, index) => (
+            <div className="  pt-10 px-7 flex flex-col items-center justify-center  flex-wrap gap-2">
+              <div>
+                {Servicios.slice(0,6).map((col, index) => (
                 <div key={index} className="flex  ">
                       <div className="flex  ">
                         <button className="bg-pink-800 w-5 h-5"></button>
@@ -385,6 +386,7 @@ export default function Home() {
                       </div>
                 </div>
               ))}
+              </div>
 
 
               <div className="w-full flex justify-center mt-4">

@@ -25,11 +25,11 @@ begin
   end if;
 
   -- Obtener precio y descuento
-  v_precio_unitario := v_producto.precio;
   v_descuento := coalesce(v_producto.descuento, 0);
+  v_precio_unitario := v_producto.precio * (1 - v_descuento / 100.0);
 
   -- Calcular total con descuento
-  v_total := p_cantidad * v_precio_unitario * (1 - v_descuento / 100.0);
+  v_total := p_cantidad * v_precio_unitario;
 
   -- Insertar en ventas
   insert into ventas_productos (

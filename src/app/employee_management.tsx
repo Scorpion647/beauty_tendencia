@@ -17,6 +17,9 @@ export const Management_employee = () => {
     const [email, setemail] = useState("")
     const [userrol, setuserrole] = useState("")
     const Roles = ["Admininstrador", "Empleado", "Encargado de caja", "No verificado"];
+    const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
+
 
     interface User {
         id: string;
@@ -74,8 +77,68 @@ export const Management_employee = () => {
         }
     };
 
-    const ShowEmployee = (name: string, last_name: string, phone: string, email: string, rol: string) => {
+    const handleUpdateUser = async () => {
+        if (!editingUserId) return alert("No hay usuario para actualizar.");
+
+        try {
+            const res = await fetch("/api/updateuser", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: editingUserId,
+                    nombres: name,
+                    apellidos: lastname,
+                    celular: phone,
+                    correo: email,
+                    rol: (userrol === "Admininstrador" ? "admin" : (userrol === "Empleado" ? "employee" : (userrol === "Encargado de caja" ? "cashier" : "guest"))),
+                }),
+            });
+
+            const contentType = res.headers.get("content-type") || "";
+            let result: any;
+
+            if (contentType.includes("application/json")) {
+                result = await res.json();
+            } else {
+                const text = await res.text();
+                console.error("Respuesta NO JSON del servidor:", text);
+                throw new Error("Respuesta del servidor no es JSON: " + text);
+            }
+
+            if (!res.ok) throw new Error(result.message || "Error al actualizar");
+
+            alert("Usuario actualizado correctamente");
+
+            setUsers((prev) =>
+                prev.map((user) =>
+                    user.id === editingUserId
+                        ? { ...user, nombres: name, apellidos: lastname, celular: phone, correo: email, rol: result.rol }
+                        : user
+                )
+            );
+
+            setEditingUserId(null);
+            setshowemployee(false);
+
+        } catch (err: unknown) {
+            let errorMessage = "Error inesperado";
+            if (err instanceof Error) errorMessage = err.message;
+            else if (typeof err === "string") errorMessage = err;
+            else {
+                try {
+                    errorMessage = JSON.stringify(err);
+                } catch { }
+            }
+            console.error("Error en actualización:", errorMessage);
+            alert("Error al actualizar usuario: " + errorMessage);
+        }
+    };
+
+
+
+    const ShowEmployee = (id: string, name: string, last_name: string, phone: string, email: string, rol: string) => {
         setshowemployee(true)
+        setEditingUserId(id); // nuevo
         setname(name)
         setlastname(last_name)
         setphone(phone)
@@ -206,8 +269,8 @@ export const Management_employee = () => {
                             </div>
                             <div className=" h-[10%] w-full flex bg-pink-800 rounded-br-2xl rounded-bl-2xl justify-center items-center">
                                 <button
-                                    className=" cursor-pointer w-[25%] bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black font-semibold  rounded shadow-md hover:opacity-90 transition-all duration-200"
-                                    onClick={handleCreateUser}
+                                    className="cursor-pointer w-[25%] bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black font-semibold rounded shadow-md hover:opacity-90 transition-all duration-200"
+                                    onClick={showemployee === false ? handleCreateUser : handleUpdateUser}
                                 >
                                     {showemployee === false ? "Agregar" : "Actualizar"}
                                 </button>
@@ -229,7 +292,7 @@ export const Management_employee = () => {
                                             </Tooltip>
                                         </div>
                                         <div className=" w-[10%] h-full text-black justify-center items-center">
-                                            <FaUserEdit onClick={() => ShowEmployee(u.nombres, u.apellidos, u.celular, u.correo, u.rol)} className=" cursor-pointer text-sm sm:text-3xl" />
+                                            <FaUserEdit onClick={() => ShowEmployee(u.id, u.nombres, u.apellidos, u.celular, u.correo, u.rol)} className=" cursor-pointer text-sm sm:text-3xl" />
 
                                         </div>
                                     </div>

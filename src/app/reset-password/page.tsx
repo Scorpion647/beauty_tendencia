@@ -25,7 +25,7 @@ export default function ResetPasswordPage() {
           const { data, error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: 'recovery',
-          } as any);
+          });
           console.log('[reset] verifyOtp:', { data, verifyError });
           if (verifyError) throw verifyError;
           if (data?.session) {
@@ -42,9 +42,10 @@ export default function ResetPasswordPage() {
         }
 
         setReady(false);
-      } catch (err: any) {
-        console.error('[reset] error procesando token_hash:', err);
-        setError(err?.message ?? 'No se pudo procesar el enlace de recuperación.');
+      } catch (err) {
+        const error = err as Error
+        console.error('[reset] error procesando token_hash:', error);
+        setError(error?.message ?? 'No se pudo procesar el enlace de recuperación.');
         setReady(false);
       }
     })();
@@ -65,15 +66,16 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
-      } as any);
+      });
       if (updateError) throw updateError;
       setMessage('¡Contraseña actualizada con éxito! Redirigiendo...');
       setTimeout(() => router.push('/'), 1300);
-    } catch (err: any) {
-      console.error('[reset] updateUser error:', err);
-      setError(err?.message ?? 'Error actualizando la contraseña.');
+    } catch (err) {
+      const error = err as Error;
+      console.error('[reset] updateUser error:', error);
+      setError(error.message ?? 'Error actualizando la contraseña.');
     } finally {
       setLoading(false);
     }

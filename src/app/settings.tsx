@@ -57,8 +57,9 @@ export const SettingsPanel = () => {
       await changePasswordLoggedIn(newPassword);
       setSuccessMsg('Contraseña actualizada con éxito');
       closeModal();
-    } catch (error: any) {
-      setErrorMsg(error.message || 'Error al cambiar la contraseña');
+    } catch (error) {
+      const err = error as Error
+      setErrorMsg(err.message || 'Error al cambiar la contraseña');
     } finally {
       setLoading(false);
     }

@@ -188,7 +188,7 @@ const sendRecoveryHandler = async () => {
       alert('Correo de recuperación enviado. Revisa tu bandeja (y spam).');
       closeModal2();
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
     setError('Ocurrió un error al intentar enviar el correo. Intenta de nuevo más tarde.');
   } finally {

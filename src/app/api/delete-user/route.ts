@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/pruebasupa'; // Este usa la service_role
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   const { userId } = await request.json();

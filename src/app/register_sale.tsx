@@ -1,4 +1,4 @@
-import { Dropdown, DropdownItem, Toast, ToastToggle, Tooltip } from "flowbite-react"
+import { Dropdown, DropdownItem, Toast, ToastToggle } from "flowbite-react"
 import { useState, useEffect } from "react";
 import Select from "react-dropdown-select";
 import { listUsers } from "@/lib/userservice";

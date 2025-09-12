@@ -49,6 +49,15 @@ export function CarouselComponent({
     }
   };
 
+
+  const getClientX = (e: React.PointerEvent | TouchEvent): number => {
+    if ("touches" in e) {
+      return e.touches[0]?.clientX ?? 0;
+    }
+    return e.clientX;
+  };
+
+
   const scheduleAutoAdvance = () => {
     clearAutoTimer();
     // only schedule for images and when autoSlide enabled
@@ -71,7 +80,7 @@ export function CarouselComponent({
       try {
         currentVideo.pause();
         currentVideo.currentTime = 0;
-      } catch (e) {}
+      } catch { }
     }
     setCurrentIndex(nextIndex);
   };
@@ -99,7 +108,7 @@ export function CarouselComponent({
       // try to play when visible and not focused/holding
       const tryPlay = () => {
         if (!isInteracting && !isHolding) {
-          currentVideo.play().catch(() => {});
+          currentVideo.play().catch(() => { });
         }
       };
 
@@ -127,7 +136,7 @@ export function CarouselComponent({
     // start hold timer
     if (holderTimeout.current) window.clearTimeout(holderTimeout.current);
     setIsHolding(false);
-    dragStartX.current = (e as any).clientX ?? (e as any).touches?.[0]?.clientX ?? null;
+    dragStartX.current = getClientX(e)
 
     holderTimeout.current = window.setTimeout(() => {
       setIsHolding(true);
@@ -135,7 +144,7 @@ export function CarouselComponent({
     }, 250); // 250ms to consider a hold
   };
 
-  const onPointerUpMedia = (e: React.PointerEvent) => {
+  const onPointerUpMedia = (_e: React.PointerEvent) => {
     if (holderTimeout.current) {
       window.clearTimeout(holderTimeout.current);
       holderTimeout.current = null;
@@ -159,7 +168,7 @@ export function CarouselComponent({
 
   const onPointerMoveOverlay = (e: React.PointerEvent) => {
     if (dragStartX.current === null) return;
-    const clientX = (e as any).clientX ?? (e as any).touches?.[0]?.clientX ?? 0;
+    const clientX = getClientX(e)
     dragDeltaX.current = clientX - dragStartX.current;
     // if dragging, prevent auto advance
     if (Math.abs(dragDeltaX.current) > 5) {
@@ -167,7 +176,7 @@ export function CarouselComponent({
     }
   };
 
-  const onPointerUpOverlay = (e: React.PointerEvent) => {
+  const onPointerUpOverlay = (_e: React.PointerEvent) => {
     if (dragStartX.current === null) return;
     const delta = dragDeltaX.current;
     const threshold = 60; // px
@@ -342,7 +351,7 @@ export function CarouselComponent({
             <div className="w-full h-full flex items-center justify-center select-none">
               {isVideo(media[currentIndex].src) ? (
                 <video
-                  ref={(el) => {videoRefs.current[currentIndex] = el}}
+                  ref={(el) => { videoRefs.current[currentIndex] = el }}
                   src={media[currentIndex].src}
                   controls
                   autoPlay

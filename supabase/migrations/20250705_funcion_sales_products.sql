@@ -1,3 +1,5 @@
+
+
 -- 03_funcion_registrar_venta.sql
 create or replace function registrar_venta_producto(
   p_producto_id bigint,

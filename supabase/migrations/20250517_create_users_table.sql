@@ -3,7 +3,8 @@ CREATE TYPE public.user_role AS ENUM (
   'admin',
   'employee',
   'cashier',
-  'guest'
+  'guest',
+  'developer'
 );
 
 -- 2. Crear tabla public.users utilizando el tipo ENUM para la columna rol

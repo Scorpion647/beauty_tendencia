@@ -235,7 +235,7 @@ function calcularBalancePrestamos(
   selectedEmployee: UserSalesData | null,
   filtroUserId: string
 ): number {
-  const esAdminSinEmpleado = !selectedEmployee && user?.userProfile?.rol === "admin";
+  const esAdminSinEmpleado = !selectedEmployee && (user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer");
 
   const registrosFiltrados = esAdminSinEmpleado
     ? data
@@ -345,7 +345,7 @@ export const Sales_records = () => {
     }
 
     try {
-      const uid = user?.userProfile?.rol !== 'admin' ? user?.userProfile?.id : id || IDusersave || undefined;
+      const uid = ((user?.userProfile?.rol === "employee" || user?.userProfile?.rol === "guest") ? user?.userProfile?.id : id) || IDusersave || undefined;
       const summary = await listSalesSummary(filterType, options, uid);
       setData(summary);
       closeModal2();
@@ -440,8 +440,8 @@ export const Sales_records = () => {
   const recordss = loanRecords ?? [];
 
   const data2 = selectedOption === 'Dia'
-    ? prepareHourlyData(records, user?.userProfile?.rol !== 'admin')
-    : prepareDailyData(records, selectedOption, selectedDate, user?.userProfile?.rol !== 'admin');
+    ? prepareHourlyData(records, (user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer" ))
+    : prepareDailyData(records, selectedOption, selectedDate, (user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer" ));
 
   const data3 = selectedOption === 'Dia'
     ? prepareHourlyData(recordss)
@@ -460,11 +460,11 @@ export const Sales_records = () => {
   return (
     <div className="w-full h-full flex flex-row" ref={containerRef}>
       <div className="flex flex-col w-[100%] h-full items-center justify-center">
-        <div className="w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-black items-center justify-center">
+        <div className="w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col sm:rounded-2xl sm:border bg-pink-200 sm:border-black items-center justify-center">
           <div className='w-full h-[37%] sm:h-[40%]'>
             {((data.length !== 0 && data.some(item => item.total !== 0))) && (
 
-              ((user?.userProfile?.rol === "admin" && IDusersave === "") ? (
+              (((user?.userProfile?.rol !== "guest" && user?.userProfile?.rol !== "employee" && (user?.userProfile?.rol !== "cashier" ||  activeButton !== "Prestamos")) && IDusersave === "") ? (
                 // Si data tiene elementos, muestro el BarChart filtrando totales != 0
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -516,14 +516,14 @@ export const Sales_records = () => {
 
             )}
             {(data.length === 0 || data.every(item => item.total === 0)) && (
-              <div className=' sm:border-b-2 sm:border-black w-full h-full flex justify-center items-center'>
+              <div className=' sm:border-b sm:border-black w-full h-full flex justify-center items-center'>
                 <p className=' text-black'>No hay datos que mostrar</p>
               </div>
             )}
           </div>
-          <div className=' w-full h-[3%] sm:hidden text-[90%] block border-b-2 border-b-black'>
+          <div className=' w-full h-[3%] sm:hidden text-[90%] block border-b border-b-black'>
             {activeButton === "Prestamos" && (
-                <p className=' font-bold  text-black'>{(user?.userProfile?.rol === "admin" && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
+                <p className=' font-bold  text-black'>{((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
               )}
           </div>
           <div className='w-full h-[60%] flex flex-col'>
@@ -534,7 +534,7 @@ export const Sales_records = () => {
                   className=" h-[50px] sm:h-[100%] border text-black border-black  rounded bg-white"
                   options={empleados}
                   values={
-                    user?.userProfile?.rol === "admin"
+                    (user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer" || (user?.userProfile?.rol === "cashier" && activeButton !== "Prestamos"))
                       ? values2
                       : [{
                         label: (user?.userProfile?.nombres ?? "") + " " + (user?.userProfile?.apellidos ?? ""),
@@ -542,7 +542,7 @@ export const Sales_records = () => {
                         id: (user?.userProfile?.id ?? ""),
                       }]
                   }
-                  disabled={user?.userProfile?.rol !== "admin"}
+                  disabled={((user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer" && (user?.userProfile?.rol !== "cashier" || activeButton === "Prestamos")) && user?.userProfile?.rol !== "developer")}
                   onChange={(selected) => {
                     setValues2(selected);
 
@@ -622,10 +622,10 @@ export const Sales_records = () => {
 
               <Button onClick={() => { openModal2(); }} color="pink" className=' w-[10%] max-w-[20px] min-w-[60px] h-[95%] rounded-none '><FaFilter color="white" width={10} height={10} /></Button>
               {activeButton === "Prestamos" && (
-                <p className=' hidden sm:block text-black'>{(user?.userProfile?.rol === "admin" && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
+                <p className=' hidden sm:block text-black'>{((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
               )}
             </div>
-            <div className=' border-t-2 border-t-black h-[88%] overflow-auto w-full flex flex-col '>
+            <div className=' border-t border-t-black h-[88%] overflow-auto w-full flex flex-col '>
               {activeButton === "Empleados" && (
 
                 <div className=" w-full">
@@ -708,7 +708,7 @@ export const Sales_records = () => {
                         console.log((empleados.find(emp => emp.label === selectedEmployee?.name))?.id)
                         console.log(values2[0]?.id)
                         console.log(record.user_id)
-                        if (values2[0]?.id === record.user_id || user?.userProfile?.id === record.user_id || (user?.userProfile?.rol === "admin" && !values2[0])) {
+                        if (values2[0]?.id === record.user_id || user?.userProfile?.id === record.user_id || ((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !values2[0])) {
                           const date = new Date(record.creado_en);
                           const hora = date.toLocaleTimeString('es-ES', {
                             hour: '2-digit',
@@ -769,10 +769,10 @@ export const Sales_records = () => {
                 <li
                   className="flex items-center space-x-4 p-2 border rounded w-full bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400"
                 >
-                  <span className={`${user?.userProfile?.rol !== "admin" ? "w-[20%] sm:w-[40%]" : "w-[33%] sm:w-[40%]"} font-semibold  break-words text-black text-[50%] sm:text-[90%]`}>Servicio: {sale.service_name}</span>
-                  <span className={`${user?.userProfile?.rol !== "admin" ? "w-[20%] sm:w-[30%]" : "w-[33%] sm:w-[30%] "} truncate text-black text-[50%] sm:text-[90%]`}>Cantidad: {sale.service_quantity}</span>
-                  <span className={` ${user?.userProfile?.rol !== "admin" ? "w-[30%]" : "w-[34%] sm:w-[30%]"}  truncate text-black text-[50%] sm:text-[90%]`}>Total: {formatCurrency(sale.service_cost)}</span>
-                  {user?.userProfile?.rol !== "admin" && (
+                  <span className={`${(user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer") ? "w-[20%] sm:w-[40%]" : "w-[33%] sm:w-[40%]"} font-semibold  break-words text-black text-[50%] sm:text-[90%]`}>Servicio: {sale.service_name}</span>
+                  <span className={`${(user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer") ? "w-[20%] sm:w-[30%]" : "w-[33%] sm:w-[30%] "} truncate text-black text-[50%] sm:text-[90%]`}>Cantidad: {sale.service_quantity}</span>
+                  <span className={` ${(user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer") ? "w-[30%]" : "w-[34%] sm:w-[30%]"}  truncate text-black text-[50%] sm:text-[90%]`}>Total: {formatCurrency(sale.service_cost)}</span>
+                  {(user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer") && (
                     <span className={`sm:w-[30%]  truncate text-black text-[50%] sm:text-[90%]`}>Total: {formatCurrency(sale.service_cost)}</span>
                   )}
                 </li>
@@ -785,7 +785,7 @@ export const Sales_records = () => {
 
             <div className='w-full text-center'><p className=' text-black font-bold text-2xl'>Filtro</p></div>
 
-            <input className=' text-black border-2 border-black rounded-sm' type="date" max={todayBogota} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}></input>
+            <input className=' text-black border border-black rounded-sm' type="date" max={todayBogota} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}></input>
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Radio

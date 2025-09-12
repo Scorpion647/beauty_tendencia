@@ -285,7 +285,7 @@ export function ProductServiceManager() {
     };
 
     return (
-        <div className="w-full p-4 bg-pink-100 min-h-screen overflow-hidden">
+        <div className="w-full p-4 bg-pink-100 h-full overflow-hidden">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex gap-4">
                     <button onClick={() => setModoGestion("productos")} className={` ${modoGestion === "productos" ? "bg-pink-800 text-yellow-300" : " bg-gray-500 text-white"} cursor-pointer  px-4 py-1 rounded font-bold`}>Productos</button>
@@ -351,7 +351,7 @@ export function ProductServiceManager() {
             </div>
 
             {modoGestion === "productos" && (
-                <div className="border-2 border-gray-700 bg-white rounded-md p-4">
+                <div className="border border-gray-700 bg-white rounded-md p-4">
                     {!soloVisualizar && (
                         <div className={` ${productoEdit ? "grid-cols-4" : "grid-cols-3"} grid gap-4 mb-4`}>
                             <div>
@@ -500,7 +500,7 @@ export function ProductServiceManager() {
             )}
 
             {modoGestion === "servicios" && (
-                <div className="border-2 border-gray-700 bg-white rounded-md p-4">
+                <div className="border border-gray-700 bg-white rounded-md p-4">
                     <div className="mb-4">
                         <p className="text-sm font-bold text-black">Nombre del servicio</p>
                         <input value={nuevoServicio} onChange={(e) => setNuevoServicio(e.target.value)} className=" text-black w-full p-1 rounded border border-gray-500" />
@@ -511,16 +511,14 @@ export function ProductServiceManager() {
                         <input type="text" className=" text-black w-full rounded border border-gray-700 px-2 py-1" placeholder="Buscar servicio..." value={searchServiceQuery} onChange={(e) => setSearchServiceQuery(e.target.value)} />
                         <button className="bg-pink-700 cursor-pointer text-yellow-300 rounded px-4" onClick={handleSearchServices}>Buscar</button>
                     </div>
-
-                    <div className="overflow-auto">
-                        <div className="grid grid-cols-[1fr_auto] font-bold border-b pb-2 text-black">
-                            <span>Nombre</span>
-                            <span>Acciones</span>
-                        </div>
-
+                    <div className="grid grid-cols-[1fr_auto] font-bold border-b pb-2 text-black">
+                        <span>Nombre</span>
+                        <span>Acciones</span>
+                    </div>
+                    <div className="overflow-y-auto max-h-[calc(65vh-115px)] px-2">
                         {servicios.map((s) => (
                             <div key={s.id} className="grid grid-cols-[1fr_auto] border-b py-1 items-center">
-                                <span className="text-black ">{s.nombre}</span>
+                                <span className="text-black">{s.nombre}</span>
                                 <button
                                     onClick={() => handleDeleteServicio(s.id)}
                                     className="cursor-pointer bg-red-600 text-white font-bold px-3 py-1 rounded"
@@ -529,8 +527,9 @@ export function ProductServiceManager() {
                                 </button>
                             </div>
                         ))}
-
                     </div>
+
+
                 </div>
             )}
 

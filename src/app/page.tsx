@@ -87,6 +87,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState<ColumnData>([]);
   const [hasMore, setHasMore] = useState(false);
+  const COOLDOWN_DEFAULT = 60; // segundos por defecto si la API no devuelve tiempo
 
 
 
@@ -144,7 +145,56 @@ export default function Home() {
   };
 
 
+const sendRecoveryHandler = async () => {
+  if (!recoveryemail) return;
+  const key = `pw_reset_last_${recoveryemail.toLowerCase()}`;
+  const lastStr = localStorage.getItem(key);
+  const lastTs = lastStr ? Number(lastStr) : 0;
+  const now = Date.now();
 
+  // Si está en cooldown local, evitar llamar
+  const secondsSince = Math.floor((now - lastTs) / 1000);
+  if (lastTs && secondsSince < COOLDOWN_DEFAULT) {
+    const wait = COOLDOWN_DEFAULT - secondsSince;
+    setError(`Ya solicitaste un enlace hace poco. Intenta de nuevo en ${wait} s.`);
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const res = await sendPasswordRecoveryEmail(recoveryemail);
+    if (!res.success) {
+      // si la API devuelve retryAfter, usarlo
+      const wait = res.retryAfter ?? COOLDOWN_DEFAULT;
+      // guardar timestamp de bloqueo local (ahora + wait s)
+      localStorage.setItem(key, (now).toString()); // guardamos ahora para contar cooldown de cliente
+      setTimeout(() => {
+        localStorage.removeItem(key);
+      }, wait * 1000);
+
+      setError(`No se pudo enviar el correo: ${res.message}. Intenta de nuevo en ${wait} segundos.`);
+    } else {
+      // éxito
+      localStorage.setItem(key, (now).toString());
+      const wait = COOLDOWN_DEFAULT;
+      setTimeout(() => localStorage.removeItem(key), wait * 1000);
+
+      // mostrar confirmación amigable
+      setError(null);
+      // usa un estado separado para mensaje exitoso
+      // por simplicidad aquí:
+      alert('Correo de recuperación enviado. Revisa tu bandeja (y spam).');
+      closeModal2();
+    }
+  } catch (err: any) {
+    console.error(err);
+    setError('Ocurrió un error al intentar enviar el correo. Intenta de nuevo más tarde.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className=" w-screen h-screen bg-white">
@@ -204,10 +254,14 @@ export default function Home() {
             className="placeholder-pink-400 text-black font-semibold w-[90%] border-2 border-gray-400 p-2"
           />
           <button
-            disabled={recoveryemail === ""}
+            disabled={recoveryemail === "" || loading}
             className={`mt-4 px-4 py-2 ${recoveryemail === "" ? "bg-gray-400 text-black " : "bg-pink-800 text-white hover:bg-pink-700"}  rounded `}
-            onClick={() => { sendPasswordRecoveryEmail(recoveryemail) }}
-          >Enviar</button>
+            onClick={sendRecoveryHandler}
+          >
+            {loading ? 'Enviando...' : 'Enviar'}
+          </button>
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+
         </div>
       </Accessmodal>
       <Accessmodal isOpen={isOpen} onClose={closeModal}>
@@ -378,14 +432,14 @@ export default function Home() {
           <div className=' block sm:hidden'>
             <div className="  pt-10 px-7 flex flex-col items-center justify-center  flex-wrap gap-2">
               <div>
-                {Servicios.slice(0,6).map((col, index) => (
-                <div key={index} className="flex  ">
-                      <div className="flex  ">
-                        <button className="bg-pink-800 w-5 h-5"></button>
-                        <p className="text-sm font-bold text-pink-600 text-center">{col}</p>
-                      </div>
-                </div>
-              ))}
+                {Servicios.slice(0, 6).map((col, index) => (
+                  <div key={index} className="flex  ">
+                    <div className="flex  ">
+                      <button className="bg-pink-800 w-5 h-5"></button>
+                      <p className="text-sm font-bold text-pink-600 text-center">{col}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
 

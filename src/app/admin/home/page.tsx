@@ -19,6 +19,8 @@ import { ProductServiceManager } from "@/app/management"
 import { MdInventory } from "react-icons/md";
 import LogoutComponent from "@/app/components/LogoutComponent";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
+import { SettingsPanel } from "@/app/settings";
+import { IoMdSettings } from "react-icons/io";
 
 
 
@@ -28,7 +30,7 @@ import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
 
 
-type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "ProductServiceManager" | "Loans" | "Logout";
+type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "ProductServiceManager" | "Loans" | "Settings" | "Logout";
 
 interface MenuItem {
   key: SectionKey;
@@ -52,6 +54,7 @@ const SECTION_COMPONENTS: Record<SectionKey, JSX.Element> = {
   Sales_Records: <Sales_records />,
   ProductServiceManager: <ProductServiceManager />,
   Loans: <LoanOrAbono />,
+  Settings: <SettingsPanel/>,
   Logout: <LogoutComponent />,
 };
 
@@ -72,30 +75,35 @@ export default function DashboardLayout() {
     { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
-    { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const employeeItems: MenuItem[] = [
-    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
-    { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const cashierItems: MenuItem[] = [
     { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
-    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
-    { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
   const guestItems: MenuItem[] = [
-    { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
+
+  ];
+
+  const developerItems: MenuItem[] = [
+    { key: "Employee", label: "Empleados", Icon: MdManageAccounts },
+    { key: "Sales", label: "Registrar Venta", Icon: MdAttachMoney },
+    { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
+    { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
+    { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
   ];
 
   // 3) Monta tu menuItems usando esos arrays
   const menuItems: MenuItem[] = [
     { key: "Home", label: "Home", Icon: IoMdHome },
-    ...(role === "admin" ? adminItems : (role === "employee" ? employeeItems : (role === "cashier" ? cashierItems : guestItems))),
+    ...(role === "admin" ? adminItems : (role === "employee" ? employeeItems : (role === "cashier" ? cashierItems : (role === "developer" ? developerItems : guestItems)))),
+    { key: "Settings", label: "Configuraciones", Icon: IoMdSettings },
+    { key: "Logout", label: "Salir", Icon: FaSignOutAlt },
   ];
 
 
@@ -147,7 +155,7 @@ export default function DashboardLayout() {
           <header className="flex items-center justify-between px-4 bg-pink-800 h-[8%]">
             <div className="hidden sm:block flex-row gap-0   font-bold  bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
               <p className="relative inline-block  font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent
-  after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-full after:bg-gradient-to-r after:from-yellow-300 after:via-yellow-200 after:to-yellow-400">{role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}</p>
+  after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-full after:bg-gradient-to-r after:from-yellow-300 after:via-yellow-200 after:to-yellow-400">{role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : (role === "developer" ? "Desarrollador" : "No verificado")))}</p>
               <p className="text-xl">{user?.userProfile?.nombres} {user?.userProfile?.apellidos}</p>
             </div>
             <div className="sm:hidden flex items-center justify-between w-full">
@@ -164,7 +172,7 @@ export default function DashboardLayout() {
         after:h-[3px] after:w-full after:bg-gradient-to-r 
         after:from-yellow-300 after:via-yellow-200 after:to-yellow-400"
                     >
-                      {role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : "No verificado"))}
+                      {role === "admin" ? "Administrador" : (role === "employee" ? "Empleado" : (role === "cashier" ? "Encargado de caja" : (role === "developer" ? "Desarrollador" : "No verificado")))}
                     </p>
                     <p className="text-[85%] truncate bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
                       {user?.userProfile?.nombres

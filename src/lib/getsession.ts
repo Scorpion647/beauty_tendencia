@@ -39,7 +39,7 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
     return null;
   }
 
-  // 3. Obtener perfil extendido desde tu tabla `users`
+  // 3. Obtener perfil extendido desde tu tabla users
   const { data: userProfile, error: profileError } = await supabase
     .from("users")
     .select("id, nombres, apellidos, celular, correo, rol, created_at, updated_at")
@@ -56,4 +56,3 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
     userProfile: userProfile ?? null,
   };
 }
-

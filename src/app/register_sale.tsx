@@ -1,4 +1,4 @@
-import { Dropdown, DropdownItem, Toast, ToastToggle } from "flowbite-react"
+import { Dropdown, DropdownItem, Toast, ToastToggle, Tooltip } from "flowbite-react"
 import { useState, useEffect } from "react";
 import Select from "react-dropdown-select";
 import { listUsers } from "@/lib/userservice";
@@ -71,7 +71,7 @@ export const Register_sale = () => {
     const [values2, setValues2] = useState<{ label: string; value: string; id: string }[]>([]);
     const [values3, setValues3] = useState<{ label: string; value: number; id: number; descuento: number | null }[]>([]);
     const [selectedEmpleado, setSelectedEmpleado] = useState(
-        user?.userProfile?.rol === 'admin'
+        user?.userProfile?.rol === 'admin' || user?.userProfile?.rol === 'cashier' || user?.userProfile?.rol === 'developer'
             ? ''
             : `${user?.userProfile?.nombres ?? ''} ${user?.userProfile?.apellidos ?? ''}`
     );
@@ -132,12 +132,25 @@ export const Register_sale = () => {
 
     // Funciones auxiliares
     const addItem = (nuevo: Omit<ServicioItem, 'id'>) => {
-        setItems((prev) => [...prev, { id: prev.length, ...nuevo }]);
+        setItems((prev) => {
+            const exists = prev.some(
+                (item) => item.servicio === nuevo.servicio
+            );
+
+            if (exists) {
+                alert("Este servicio ya fue agregado con anterioridad");
+                return prev; // No agrega el duplicado
+            }
+
+            return [...prev, { id: prev.length, ...nuevo }];
+        });
+
         setCant(1);
         setPrice(0);
         setValues([]);
         setRawPrice('');
     };
+
 
     const removeItem = (idToRemove: number) => {
         setItems((prev) => {
@@ -212,13 +225,13 @@ export const Register_sale = () => {
     return (
         <div className=" w-full h-full flex flex-row">
             <div className=" flex flex-col w-[100%]  h-full  items-center justify-center ">
-                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex  sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-gray-700  items-center justify-center">
+                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex  sm:rounded-2xl sm:border bg-pink-200 sm:border-gray-700  items-center justify-center">
                     <div className=" w-[95%] h-[95%] ">
-                        <div className=" border-2 border-gray-700 rounded-t-md w-full h-[6%] sm:h-[10%] flex items-center justify-center bg-pink-800"><p className="  text-3xl font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Registrar venta</p></div>
+                        <div className=" border border-gray-700 rounded-t-md w-full h-[6%] sm:h-[10%] flex items-center justify-center bg-pink-800"><p className="  text-3xl font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Registrar venta</p></div>
 
                         <div className="flex h-[89%] sm:h-[85%] flex-col sm:flex-row w-full sm:justify-evenly items-center justify-center">
                             <div className=" sm:pr-5 pb-5 pt-2 sm:pt-5 w-full sm:w-[80%] h-[70%] sm:h-full flex flex-col    items-center justify-center">
-                                <div className=" relative border-2 font-bold border-gray-700  w-full h-[70%] sm:h-full flex flex-row rounded-t-md   bg-red-100 items-center justify-center">
+                                <div className=" relative border font-bold border-gray-700  w-full h-[70%] sm:h-full flex flex-row rounded-t-md   bg-red-100 items-center justify-center">
 
 
                                     <Accessmodal isOpen={isOpen} onClose={closeModal}>
@@ -284,11 +297,13 @@ export const Register_sale = () => {
                                                 </div>
                                             )}
 
+
                                             <Select
-                                                className="w-[100%] h-10 border text-black border-gray-700 rounded bg-white"
+                                                className="w-[100%] h-full border text-black border-gray-700 rounded bg-white"
                                                 options={empleados}
+                                                color="#db2777"
                                                 values={
-                                                    user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "cashier"
+                                                    user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "cashier" || user?.userProfile?.rol === "developer"
                                                         ? values2
                                                         : [{
                                                             label: (user?.userProfile?.nombres ?? "") + " " + (user?.userProfile?.apellidos ?? ""),
@@ -317,16 +332,18 @@ export const Register_sale = () => {
                                                     console.log("Deseleccionado:", deselected);
                                                 }}
                                             />
+
                                         </div>
                                         <div className=" w-[80%]">
                                             <p className=" text-black text-xs font-semibold">Servicio</p>
                                             <Select
                                                 disabled={selectedEmpleado === ""}
-                                                className=" w-[100%] h-10  border text-black border-gray-700 rounded bg-white"
+                                                className=" w-[100%] h-10   border text-black border-gray-700 rounded bg-white"
                                                 options={opciones}
                                                 values={values}
                                                 onChange={setValues}
                                                 placeholder="Busca"
+                                                color="#db2777"
                                                 searchable // activa el input de búsqueda
                                                 clearable // permite limpiar la selección
                                                 dropdownHandle={false} // oculta el “handle” si no lo necesitas
@@ -344,7 +361,7 @@ export const Register_sale = () => {
                                                 disabled={selectedEmpleado === ""}
                                                 placeholder="Precio"
                                                 value={rawPrice}
-                                                className="w-[100%] h-10 text-black rounded bg-white"
+                                                className=" pl-2 w-[100%] h-10 text-black focus:border-pink-600 focus:border focus:outline-none rounded bg-white"
                                                 onChange={(e) => {
                                                     const inputValue = e.target.value;
                                                     const numericValue = inputValue.replace(/[^\d]/g, '');
@@ -361,8 +378,26 @@ export const Register_sale = () => {
                                                     setRawPrice(formatted);
                                                     setPrice(price);
                                                 }}
-
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        e.key === 'Enter' &&
+                                                        Cant !== 0 &&
+                                                        Price !== 0 &&
+                                                        values &&
+                                                        values.length > 0 &&
+                                                        selectedMetodo !== "" &&
+                                                        !cargando
+                                                    ) {
+                                                        addItem({
+                                                            servicio: values[0].value,
+                                                            cantidad: Cant,
+                                                            precio: Price,
+                                                            ganado: Price * Cant * 0.5,
+                                                        });
+                                                    }
+                                                }}
                                             />
+
 
                                         </div>
 
@@ -391,7 +426,7 @@ export const Register_sale = () => {
                                             <p className=" text-black text-xs font-semibold">Cantidad Servicio</p>
                                             <input
                                                 disabled={selectedEmpleado === ""}
-                                                className=" w-[100%] h-10   text-black  rounded bg-white"
+                                                className=" pl-2 w-[100%] h-10 focus:border-pink-600 focus:border focus:outline-none   text-black  rounded bg-white"
                                                 placeholder="Cantidad"
                                                 type="number"
                                                 value={!values[0]?.value ? "" : Cant}
@@ -406,7 +441,7 @@ export const Register_sale = () => {
                                                 value={!Number.isNaN((Cant * Price) * 0.5) ? formatCurrency((Cant * Price) * 0.5) : "$ " + 0}
                                                 placeholder="Ganancia"
                                                 onChange={(e) => setCant(parseFloat(e.target.value))}
-                                                className="  w-[100%] h-10  text-black  rounded bg-white"
+                                                className=" pl-2  w-[100%] h-10  text-gray-500  rounded bg-gray-100 border border-gray-300"
                                             />
                                         </div>
 
@@ -415,28 +450,39 @@ export const Register_sale = () => {
                                     </div>
 
                                 </div>
-                                <div className=" rounded-b-md border-2 border-gray-700 border-t-0 justify-center w-full h-[30%] bg-amber-300 flex flex-col">
+                                <div className=" rounded-b-md border border-gray-700 border-t-0 justify-center w-full h-[30%] bg-amber-300 flex flex-col">
                                     <p className=" px-2.5 text-black font-semibold">{"Total " + formatCurrency(totalPrecioXCantidad)}</p>
                                     <p className=" px-2.5 text-black font-semibold">{"Total Ganado " + formatCurrency(totalGanado)}</p>
                                 </div>
                             </div>
 
                             <div className="  sm:w-[20%] sm:h-full h-[30%] w-full pb-5 sm:pt-5 flex flex-col">
-                                <div className=" text-center text-black text-2xl border-2 rounded-t-md border-gray-700 bg-pink-800"><p className=" font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Servicios</p></div>
-                                <div className=" bg-white w-full h-full border-2 rounded-b-md border-gray-700 border-t-0  overflow-auto flex flex-col gap-0.5">
-                                    {items.map(item => (
-                                        <div key={item.id} className="pl-2.5 mb-0.5 mt-0.5 text-start content-center w-full h-[30%] sm:h-[10%] bg-pink-600 flex flex-row">
-                                            <div className="text-start content-center w-[90%] h-full">
-                                                <p className="text-sm sm:text-xs">{item.servicio}</p>
-                                            </div>
-                                            <div className="text-start content-center w-[10%] h-full cursor-pointer" onClick={() => removeItem(item.id)}>
-                                                <p className="text-sm sm:text-xs">X</p>
-                                            </div>
+                                <div className="text-center text-black text-2xl border rounded-t-md border-gray-700 bg-pink-800">
+                                    <p className="font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">
+                                        Servicios
+                                    </p>
+                                </div>
+
+                                <div className=" border border-gray-600 bg-white w-full h-full overflow-y-auto overflow-x-hidden flex flex-col  px-1">
+                                    {items.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="my-0.5 flex-shrink-0 w-full h-[30%] sm:h-[10%] bg-pink-600 flex items-center justify-between px-2 rounded"
+                                        >
+                                            <p className="text-sm sm:text-xs truncate w-full">
+                                                {item.servicio}
+                                            </p>
+                                            <button
+                                                className="ml-2 flex-shrink-0 text-sm sm:text-xs cursor-pointer"
+                                                onClick={() => removeItem(item.id)}
+                                            >
+                                                X
+                                            </button>
                                         </div>
                                     ))}
-
                                 </div>
                             </div>
+
                         </div>
                         <div className=" flex flex-row w-[100%] sm:w-[80%] h-[5%] ">
 

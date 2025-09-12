@@ -1,14 +1,22 @@
-import { supabase } from "@/lib/supabaseClient";
+// lib/supabase/recoverypassword.ts
+import { supabase } from '@/lib/supabaseClient';
 
-export async function sendPasswordRecoveryEmail(email: string) {
+type RecoveryResult =
+  | { success: true; data: any }
+  | { success: false; message: string; retryAfter?: number };
+
+export async function sendPasswordRecoveryEmail(email: string): Promise<RecoveryResult> {
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
-});
-
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+  });
 
   if (error) {
-    throw new Error(error.message);
+    // intentar extraer "after N seconds"
+    const m = error.message.match(/after\s+(\d+)\s+seconds/i);
+    const retryAfter = m ? Number(m[1]) : undefined;
+    return { success: false, message: error.message, retryAfter };
   }
 
-  return data;
+  return { success: true, data };
 }
+

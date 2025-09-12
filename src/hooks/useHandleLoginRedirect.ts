@@ -1,12 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export function useHandleLoginRedirect() {
   const router = useRouter();
+  const pathname = usePathname();
 
   async function redirect() {
+    // ⚠️ No redirigir si ya estamos en reset-password
+    if (pathname.startsWith("/reset-password")) return;
+
     const {
       data: { session },
       error: sessionError,
@@ -18,7 +22,6 @@ export function useHandleLoginRedirect() {
     }
 
     const userId = session.user.id;
-
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("rol")
@@ -32,9 +35,10 @@ export function useHandleLoginRedirect() {
 
     switch (userData.rol) {
       case "admin":
-        router.push("/admin/home");
-        break;
       case "employee":
+      case "cashier":
+      case "guest":
+      case "developer":
         router.push("/admin/home");
         break;
       default:

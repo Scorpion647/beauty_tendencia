@@ -1,5 +1,5 @@
 
-import { listUsers } from "@/lib/userservice";
+import { deleteUser, listUsers } from "@/lib/userservice";
 import { Dropdown, DropdownItem, Tooltip } from "flowbite-react";
 import { useState, useEffect } from "react";
 import { FaUserEdit } from "react-icons/fa";
@@ -27,7 +27,7 @@ export const Management_employee = () => {
         apellidos: string;
         celular: string;
         correo: string;
-        rol: "admin" | "employee" | "cashier" | "guest";
+        rol: "admin" | "employee" | "cashier" | "guest" | "developer";
         created_at: string;
         updated_at: string;
     }
@@ -76,6 +76,33 @@ export const Management_employee = () => {
             alert("Error al crear usuario: " + errorMessage);
         }
     };
+
+    const Deleteuse = async () => {
+  try {
+    const res = await fetch('/api/delete-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: editingUserId }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(result.error || 'Error desconocido');
+    }
+
+    setshowemployee(false);
+    alert("Usuario eliminado con éxito");
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Error inesperado';
+    alert(msg);
+    console.error("Error al eliminar usuario:", msg);
+  }
+};
+
+
 
     const handleUpdateUser = async () => {
         if (!editingUserId) return alert("No hay usuario para actualizar.");
@@ -183,12 +210,12 @@ export const Management_employee = () => {
     return (
         <div className=" w-full h-full flex flex-row">
             <div className=" flex flex-col w-[100%]  h-full  items-center justify-center ">
-                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col gap-2.5  sm:rounded-2xl sm:border-2 bg-pink-200 sm:border-gray-600  items-center justify-center">
-                    <div className=" w-[95%] h-[6%] sm:h-[10%] flex bg-pink-800  items-center justify-center rounded-tr-2xl rounded-tl-2xl border-2 border-gray-900 ">
+                <div className=" w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col gap-2.5  sm:rounded-2xl sm:border bg-pink-200 sm:border-gray-600  items-center justify-center">
+                    <div className=" w-[95%] h-[6%] sm:h-[10%] flex bg-pink-800  items-center justify-center rounded-tr-2xl rounded-tl-2xl border border-gray-900 ">
                         <p className=" text-3xl  sm:text-2xl font-bold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Gestion de empleados</p>
                     </div>
                     <div className=" w-[95%] flex flex-col sm:flex-row gap-2.5 h-[90%] sm:h-[82%] ">
-                        <div className=" flex flex-col w-full h-[70%] sm:w-[60%] sm:h-full border-2 rounded-2xl border-gray-700 bg-red-500">
+                        <div className=" flex flex-col w-full h-[70%] sm:w-[60%] sm:h-full border rounded-2xl border-gray-700 bg-red-500">
                             <div className=" flex flex-row h-[10%] w-full bg-pink-800 rounded-tr-2xl rounded-tl-2xl ">
 
                                 <div className={`${showemployee ? "w-[90%]" : "w-full"} h-full flex items-center justify-center`}>
@@ -267,16 +294,24 @@ export const Management_employee = () => {
 
 
                             </div>
-                            <div className=" h-[10%] w-full flex bg-pink-800 rounded-br-2xl rounded-bl-2xl justify-center items-center">
+                            <div className=" h-[10%] w-full gap-2 flex flex-row bg-pink-800 rounded-br-2xl rounded-bl-2xl justify-center items-center">
                                 <button
                                     className="cursor-pointer w-[25%] bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black font-semibold rounded shadow-md hover:opacity-90 transition-all duration-200"
                                     onClick={showemployee === false ? handleCreateUser : handleUpdateUser}
                                 >
                                     {showemployee === false ? "Agregar" : "Actualizar"}
                                 </button>
+                                {showemployee === true && (
+                                    <button
+                                    className="cursor-pointer w-[25%] bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 text-black font-semibold rounded shadow-md hover:opacity-90 transition-all duration-200"
+                                    onClick={Deleteuse}
+                                >
+                                    Eliminar
+                                </button>
+                                )}
                             </div>
                         </div>
-                        <div className="  sm:py-0 w-full h-[30%] sm:w-[40%] sm:h-full flex flex-col bg-gray-200 border-2 rounded-2xl  border-gray-700">
+                        <div className="  sm:py-0 w-full h-[30%] sm:w-[40%] sm:h-full flex flex-col bg-gray-200 border rounded-2xl  border-gray-700">
                             <div className=" bg-pink-800 w-full h-[20%] sm:h-[10%] flex items-center justify-center rounded-tr-2xl rounded-tl-2xl">
                                 <p className=" text-lg sm:text-2xl font-semibold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 bg-clip-text text-transparent">Empleados</p>
                             </div>
@@ -287,8 +322,8 @@ export const Management_employee = () => {
                                             <p className=" text-sm sm:text-lg  text-gray-800 font-semibold  ">{u.nombres} {u.apellidos}</p>
                                         </div>
                                         <div className=" w-[10%] h-full justify-center items-center">
-                                            <Tooltip content={u.rol === "admin" ? "administrador" : (u.rol === "employee" ? "empleado" : (u.rol === "cashier" ? "encargado de caja" : "no verificado"))}>
-                                                <p className=" text-sm sm:text-lg text-pink-800">{u.rol === "admin" ? "ADM" : u.rol === "employee" ? "EMP" : (u.rol === "cashier" ? "CAJ" : "INV")}</p>
+                                            <Tooltip content={u.rol === "admin" ? "administrador" : (u.rol === "employee" ? "empleado" : (u.rol === "cashier" ? "encargado de caja" : (u.rol === "developer" ? "desarrollador" : "no verificado")))}>
+                                                <p className=" text-sm sm:text-lg text-pink-800">{u.rol === "admin" ? "ADM" : u.rol === "employee" ? "EMP" : (u.rol === "cashier" ? "CAJ" : (u.rol === "developer" ? "DVP" : "INV"))}</p>
                                             </Tooltip>
                                         </div>
                                         <div className=" w-[10%] h-full text-black justify-center items-center">

@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
 type RecoveryResult =
-  | { success: true; data: {} }
+  | { success: true; data: unknown }
   | { success: false; message: string; retryAfter?: number };
 
 export async function sendPasswordRecoveryEmail(email: string): Promise<RecoveryResult> {

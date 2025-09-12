@@ -144,7 +144,7 @@ export function CarouselComponent({
     }, 250); // 250ms to consider a hold
   };
 
-  const onPointerUpMedia = (_e: React.PointerEvent) => {
+  const onPointerUpMedia = () => {
     if (holderTimeout.current) {
       window.clearTimeout(holderTimeout.current);
       holderTimeout.current = null;
@@ -176,7 +176,7 @@ export function CarouselComponent({
     }
   };
 
-  const onPointerUpOverlay = (_e: React.PointerEvent) => {
+  const onPointerUpOverlay = () => {
     if (dragStartX.current === null) return;
     const delta = dragDeltaX.current;
     const threshold = 60; // px

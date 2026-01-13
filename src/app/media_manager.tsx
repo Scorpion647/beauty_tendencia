@@ -314,20 +314,6 @@ export default function MediaManager() {
     if (mode === "local") saveToLocal(copy);
   }
 
-  function assignAllUnassignedToSection(section: SectionKey) {
-    const copy = media.map((m) => ({ ...m }));
-    let nextOrder = copy.filter((x) => x.section === section).length;
-    copy.forEach((x) => {
-      if (x.section === null) {
-        x.section = section;
-        x.order = nextOrder++;
-        stageChange(x);
-      }
-    });
-    normalizeOrders(copy);
-    setMedia(copy);
-    if (mode === "local") saveToLocal(copy);
-  }
 
   function normalizeOrders(arr: LocalMediaItem[]) {
     for (const s of SECTIONS) {
@@ -431,16 +417,16 @@ export default function MediaManager() {
         try {
           const result = await uploadToSupabase(f);
           console.log("Subida completada:", result);
-        } catch (uploadErr: any) {
+        } catch (uploadErr: unknown) {
           console.error("Error en uploadToSupabase:", uploadErr);
-          if (uploadErr?.message) setError(uploadErr.message);
+          if (getErrorMessage(uploadErr)) setError(getErrorMessage(uploadErr));
           else setError("Error subiendo archivo: " + f.name);
         }
       }
       await loadFromSupabase();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error global en handleFiles:", err);
-      setError(err.message ?? "Error subiendo archivos.");
+      setError(getErrorMessage(err) ?? "Error subiendo archivos.");
     } finally {
       setUploading(false);
     }
@@ -483,9 +469,9 @@ export default function MediaManager() {
       }
       await loadFromSupabase();
       alert("Cambios guardados correctamente.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error guardando cambios:", err);
-      setError(err.message ?? "Error guardando cambios.");
+      setError(getErrorMessage(err) ?? "Error guardando cambios.");
     } finally {
       setLoading(false);
     }

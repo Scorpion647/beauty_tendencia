@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { HiOutlineUpload } from "react-icons/hi";
 import { FaTrash } from "react-icons/fa";
 import { CarouselComponent } from "@/app/components/Carousel"; // ajusta ruta si hace falta
-import {PositionPicker} from "@/app/components/PositionPicker"
+import { PositionPicker } from "./components/PositionPicker";
+
 
 export type SectionKey = "inicio" | "nosotros" | "ofertas";
 
@@ -22,6 +23,35 @@ export type LocalMediaItem = {
   storage_path?: string | null;
 };
 
+type MediaItemRow = {
+  id: string;
+  name: string;
+  url: string | null;
+  mime_type: string | null;
+  section: SectionKey | null;
+  order: number | null;
+  position: string | null;
+  created_at: string | null;
+  storage_path: string | null;
+};
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (typeof err === "object" && err && "message" in err) {
+    const m = (err as Record<string, unknown>).message;
+    if (typeof m === "string") return m;
+  }
+  return "Error desconocido";
+}
+
+type MediaItemUpdatePayload = {
+  position: string | undefined;
+  section: SectionKey | null | undefined;
+  order: number;
+};
+
+
 const STORAGE_KEY = "tendencias_media_v1";
 const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "inicio", label: "Inicio" },
@@ -30,12 +60,13 @@ const SECTIONS: { key: SectionKey; label: string }[] = [
 ];
 
 function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
+
 
 function formatFileName(name: string, maxLength = 18): string {
   const dotIndex = name.lastIndexOf(".");
@@ -65,7 +96,7 @@ function formatFileName(name: string, maxLength = 18): string {
 export default function MediaManager() {
   // Estados y refs
   const [media, setMedia] = useState<LocalMediaItem[]>([]);
-  const [mode, setMode] = useState<"local" | "supabase">("supabase");
+  const [mode] = useState<"local" | "supabase">("supabase");
   const [filterText, setFilterText] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -80,7 +111,6 @@ export default function MediaManager() {
   useEffect(() => {
     if (mode === "local") loadFromLocal();
     else loadFromSupabase();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   // ---------- Local helpers ----------
@@ -125,12 +155,14 @@ export default function MediaManager() {
         return;
       }
 
-      const mapped: LocalMediaItem[] = rows.map((r: any) => ({
+      const typedRows = (rows ?? []) as MediaItemRow[];
+
+      const mapped: LocalMediaItem[] = typedRows.map((r) => ({
         id: r.id,
         name: r.name,
         src: r.url ?? "",
         mimeType: r.mime_type ?? "",
-        section: (r.section as SectionKey) ?? null,
+        section: r.section ?? null,
         order: r.order ?? 0,
         position: r.position ?? "center",
         createdAt: r.created_at ?? new Date().toISOString(),
@@ -157,14 +189,15 @@ export default function MediaManager() {
       if (!user) throw new Error("No estás autenticado.");
 
       const path = `${user.id}/${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
+      const { error: uploadErr } = await supabase.storage
         .from("media")
         .upload(path, file, { cacheControl: "3600", upsert: false });
+
 
       if (uploadErr) throw uploadErr;
 
       const { data: publicData } = supabase.storage.from("media").getPublicUrl(path);
-      const publicUrl = (publicData as any)?.publicUrl ?? null;
+      const publicUrl = publicData.publicUrl;
       if (!publicUrl) throw new Error("No se pudo obtener la URL pública del archivo.");
 
       // crear fila en media_items
@@ -242,9 +275,9 @@ export default function MediaManager() {
         delete copy[id];
         return copy;
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error borrando item:", err);
-      setError(err.message ?? "Error borrando elemento.");
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -252,11 +285,11 @@ export default function MediaManager() {
 
   // ---------- persist helpers ----------
   async function persistUpdateOne(item: LocalMediaItem) {
-    const payload: any = {
-      position: item.position,
-      section: item.section,
-      order: item.order,
-    };
+    const payload: MediaItemUpdatePayload = {
+    position: item.position,
+    section: item.section,
+    order: item.order,
+  };
     const { error } = await supabase.from("media_items").update(payload).eq("id", item.id);
     if (error) throw error;
   }

@@ -19,6 +19,16 @@ type MediaItem = {
   position?: 'top' | 'center' | 'bottom' | string; // acepta personalizados como '50% 20%'
 };
 
+type MediaSection = "inicio" | "nosotros" | "ofertas";
+
+type MediaItemsRow = {
+  url: string | null;
+  public_url?: string | null; // opcional por compatibilidad, si no existe no pasa nada
+  position: string | null;
+  section: MediaSection | null;
+};
+
+
 const FALLBACK_IMAGES: MediaItem[] = [
   { src: "/C_Inicio/Uñas1.jpg", position: "50% 25%" },
   { src: "/C_Inicio/Cabello2.jpg", position: "top" },
@@ -69,7 +79,7 @@ export default function Home() {
   const [nosotrosMedia, setNosotrosMedia] = useState<MediaItem[]>([]);
   const [ofertasMedia, setOfertasMedia] = useState<MediaItem[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaError, setMediaError] = useState<string | null>(null);
+  //const [mediaError, setMediaError] = useState<string | null>(null);
 
   // other states (auth, servicios...)
   const [email, setEmail] = useState("");
@@ -112,7 +122,7 @@ export default function Home() {
     let mounted = true;
     const fetchMedia = async () => {
       setMediaLoading(true);
-      setMediaError(null);
+      //setMediaError(null);
       try {
         // obtenemos todos y luego agrupamos; orden por "order"
         const { data, error: selectErr } = await supabase
@@ -126,7 +136,9 @@ export default function Home() {
         const nosotros: MediaItem[] = [];
         const ofertas: MediaItem[] = [];
 
-        (data ?? []).forEach((row: any) => {
+        const rows = (data ?? []) as MediaItemsRow[];
+
+        rows.forEach((row) => {
           // asumimos que la columna con la url pública se llama 'url' (como en el uploader)
           const url = row.url ?? row.public_url ?? null;
           if (!url) return;
@@ -147,13 +159,11 @@ export default function Home() {
         setInicioMedia(inicio.length > 0 ? inicio : FALLBACK_IMAGES);
         setNosotrosMedia(nosotros.length > 0 ? nosotros : FALLBACK_NOSOTROS);
         setOfertasMedia(ofertas.length > 0 ? ofertas : FALLBACK_OFERTAS);
-      } catch (err: any) {
-        console.error("Error cargando media desde Supabase:", err);
-        setMediaError(err?.message ? String(err.message) : "Error cargando medios");
-        // fallback a públicos por seguridad
-        setInicioMedia(FALLBACK_IMAGES);
-        setNosotrosMedia(FALLBACK_NOSOTROS);
-        setOfertasMedia(FALLBACK_OFERTAS);
+      } catch (err: unknown) {
+      console.error("Error cargando media desde Supabase:", err);
+      setInicioMedia(FALLBACK_IMAGES);
+      setNosotrosMedia(FALLBACK_NOSOTROS);
+      setOfertasMedia(FALLBACK_OFERTAS);
       } finally {
         if (mounted) setMediaLoading(false);
       }

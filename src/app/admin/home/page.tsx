@@ -14,6 +14,7 @@ import { MdAttachMoney } from 'react-icons/md';
 import { MdBarChart } from 'react-icons/md';
 import { FaSignOutAlt } from 'react-icons/fa';
 import { GiPiggyBank } from "react-icons/gi";
+import { RiImageEditFill } from "react-icons/ri";
 import { LoanOrAbono } from "@/app/loans";
 import { ProductServiceManager } from "@/app/management"
 import { MdInventory } from "react-icons/md";
@@ -21,6 +22,7 @@ import LogoutComponent from "@/app/components/LogoutComponent";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 import { SettingsPanel } from "@/app/settings";
 import { IoMdSettings } from "react-icons/io";
+import MediaManager from "@/app/media_manager";
 
 
 
@@ -30,7 +32,7 @@ import { IoMdSettings } from "react-icons/io";
 
 
 
-type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "ProductServiceManager" | "Loans" | "Settings" | "Logout";
+type SectionKey = "Home" | "Employee" | "Sales" | "Sales_Records" | "ProductServiceManager" | "Loans" | "Media_manager"| "Settings" | "Logout";
 
 interface MenuItem {
   key: SectionKey;
@@ -54,6 +56,7 @@ const SECTION_COMPONENTS: Record<SectionKey, JSX.Element> = {
   Sales_Records: <Sales_records />,
   ProductServiceManager: <ProductServiceManager />,
   Loans: <LoanOrAbono />,
+  Media_manager: <MediaManager/>,
   Settings: <SettingsPanel/>,
   Logout: <LogoutComponent />,
 };
@@ -75,6 +78,7 @@ export default function DashboardLayout() {
     { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
+    { key: "Media_manager", label: "Publicidad", Icon: RiImageEditFill },
   ];
 
   const employeeItems: MenuItem[] = [
@@ -96,6 +100,7 @@ export default function DashboardLayout() {
     { key: "ProductServiceManager", label: "Productos y servicios", Icon: MdInventory },
     { key: "Sales_Records", label: "Registros", Icon: MdBarChart },
     { key: "Loans", label: "Prestamos", Icon: GiPiggyBank },
+    { key: "Media_manager", label: "Publicidad", Icon: RiImageEditFill },
   ];
 
   // 3) Monta tu menuItems usando esos arrays
@@ -114,7 +119,7 @@ export default function DashboardLayout() {
   return (
 
     <ProtectedRoute>
-      <div className="flex h-screen overflow-hidden bg-white">
+      <div className="flex h-screen max-h-screen bg-white w-full overflow-x-hidden">
         {/* Sidebar para pantallas sm+ */}
         <aside className="hidden sm:flex flex-col w-[5%] bg-pink-800">
           <div className="flex items-center justify-center h-[8%]">

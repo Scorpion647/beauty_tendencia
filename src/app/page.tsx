@@ -19,7 +19,7 @@ type MediaItem = {
   position?: 'top' | 'center' | 'bottom' | string; // acepta personalizados como '50% 20%'
 };
 
-const images: MediaItem[] = [
+const FALLBACK_IMAGES: MediaItem[] = [
   { src: "/C_Inicio/Uñas1.jpg", position: "50% 25%" },
   { src: "/C_Inicio/Cabello2.jpg", position: "top" },
   { src: "/C_Inicio/Laminado.mp4" },
@@ -28,16 +28,15 @@ const images: MediaItem[] = [
   { src: "/C_Inicio/Uñas2.jpg" },
 ];
 
-const nosotros: MediaItem[] = [
+const FALLBACK_NOSOTROS: MediaItem[] = [
   { src: "/Sobre_Nosotros.jpg" },
   { src: "/Un espacio para ti.mp4" },
 ];
 
-const Ofertas: MediaItem[] = [
+const FALLBACK_OFERTAS: MediaItem[] = [
   { src: "/Ofertas/Oferta1.jpg" },
   { src: "/Ofertas/Oferta2.jpg" },
 ];
-
 
 type ColumnData = string[][];
 
@@ -57,30 +56,24 @@ function splitServicesIntoColumns(
   return { columns: result, hasMore };
 }
 
-
-
 const currentYear = new Date().getFullYear();
+
 export default function Home() {
   const { redirect } = useHandleLoginRedirect();
   const [isOpen, setIsOpen] = useState(false);
   const [isOpen2, setIsOpen2] = useState(false);
   const [isOpen3, setIsOpen3] = useState(false);
 
-  // 2. Funciones para abrir/cerrar
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
+  // media from Supabase
+  const [inicioMedia, setInicioMedia] = useState<MediaItem[]>([]);
+  const [nosotrosMedia, setNosotrosMedia] = useState<MediaItem[]>([]);
+  const [ofertasMedia, setOfertasMedia] = useState<MediaItem[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
 
-  const openModal2 = () => setIsOpen2(true);
-  const closeModal2 = () => setIsOpen2(false);
-
-  const openModal3 = () => setIsOpen3(true);
-  const closeModal3 = () => setIsOpen3(false);
-
-
+  // other states (auth, servicios...)
   const [email, setEmail] = useState("");
   const [recoveryemail, setrecoveryemail] = useState("");
-
-
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [Servicios, setServicios] = useState<string[]>([]);
@@ -89,9 +82,15 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(false);
   const COOLDOWN_DEFAULT = 60; // segundos por defecto si la API no devuelve tiempo
 
+  // Modals handlers
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+  const openModal2 = () => setIsOpen2(true);
+  const closeModal2 = () => setIsOpen2(false);
+  const openModal3 = () => setIsOpen3(true);
+  const closeModal3 = () => setIsOpen3(false);
 
-
-
+  // Fetch services
   useEffect(() => {
     const fetchServicios = async () => {
       try {
@@ -105,9 +104,76 @@ export default function Home() {
         console.error("Error al obtener servicios:", error);
       }
     };
-
     fetchServicios();
   }, []);
+
+  // Fetch media items from Supabase and group them
+  useEffect(() => {
+    let mounted = true;
+    const fetchMedia = async () => {
+      setMediaLoading(true);
+      setMediaError(null);
+      try {
+        // obtenemos todos y luego agrupamos; orden por "order"
+        const { data, error: selectErr } = await supabase
+          .from("media_items")
+          .select("*")
+          .order("order", { ascending: true });
+
+        if (selectErr) throw selectErr;
+
+        const inicio: MediaItem[] = [];
+        const nosotros: MediaItem[] = [];
+        const ofertas: MediaItem[] = [];
+
+        (data ?? []).forEach((row: any) => {
+          // asumimos que la columna con la url pública se llama 'url' (como en el uploader)
+          const url = row.url ?? row.public_url ?? null;
+          if (!url) return;
+          const mi: MediaItem = {
+            src: url,
+            position: row.position ?? "center",
+          };
+          const section = row.section;
+          if (section === "inicio") inicio.push(mi);
+          else if (section === "nosotros") nosotros.push(mi);
+          else if (section === "ofertas") ofertas.push(mi);
+          // si hay otros sections, ignoramos
+        });
+
+        if (!mounted) return;
+
+        // si alguna sección queda vacía, usamos fallback (opcional)
+        setInicioMedia(inicio.length > 0 ? inicio : FALLBACK_IMAGES);
+        setNosotrosMedia(nosotros.length > 0 ? nosotros : FALLBACK_NOSOTROS);
+        setOfertasMedia(ofertas.length > 0 ? ofertas : FALLBACK_OFERTAS);
+      } catch (err: any) {
+        console.error("Error cargando media desde Supabase:", err);
+        setMediaError(err?.message ? String(err.message) : "Error cargando medios");
+        // fallback a públicos por seguridad
+        setInicioMedia(FALLBACK_IMAGES);
+        setNosotrosMedia(FALLBACK_NOSOTROS);
+        setOfertasMedia(FALLBACK_OFERTAS);
+      } finally {
+        if (mounted) setMediaLoading(false);
+      }
+    };
+
+    fetchMedia();
+
+    // opcional: re-fetch automático cada X segundos si quieres (para ver cambios recientes)
+    // const interval = setInterval(fetchMedia, 30_000);
+    // return () => { mounted = false; clearInterval(interval); };
+    return () => { mounted = false; };
+  }, []);
+
+  const getSafeLocalStorage = () => {
+    if (typeof window === 'undefined') return null; // SSR / server
+    const ls = window.localStorage;
+    if (!ls || typeof ls.getItem !== 'function') return null;
+    return ls;
+  };
+
 
   const handleLogin = async () => {
     setLoading(true);
@@ -132,7 +198,6 @@ export default function Home() {
     }
   };
 
-
   const waitForSession = async () => {
     for (let i = 0; i < 10; i++) {
       const {
@@ -144,60 +209,57 @@ export default function Home() {
     throw new Error("No se pudo obtener la sesión actual");
   };
 
+  const sendRecoveryHandler = async () => {
+    if (!recoveryemail) return;
 
-const sendRecoveryHandler = async () => {
-  if (!recoveryemail) return;
-  const key = `pw_reset_last_${recoveryemail.toLowerCase()}`;
-  const lastStr = localStorage.getItem(key);
-  const lastTs = lastStr ? Number(lastStr) : 0;
-  const now = Date.now();
+    const ls = getSafeLocalStorage(); // 👈 IMPORTANT
+    const key = `pw_reset_last_${recoveryemail.toLowerCase()}`;
 
-  // Si está en cooldown local, evitar llamar
-  const secondsSince = Math.floor((now - lastTs) / 1000);
-  if (lastTs && secondsSince < COOLDOWN_DEFAULT) {
-    const wait = COOLDOWN_DEFAULT - secondsSince;
-    setError(`Ya solicitaste un enlace hace poco. Intenta de nuevo en ${wait} s.`);
-    return;
-  }
+    const lastStr = ls?.getItem(key) ?? null;
+    const lastTs = lastStr ? Number(lastStr) : 0;
+    const now = Date.now();
 
-  setLoading(true);
-  setError(null);
+    const secondsSince = Math.floor((now - lastTs) / 1000);
+    if (lastTs && secondsSince < COOLDOWN_DEFAULT) {
+      const wait = COOLDOWN_DEFAULT - secondsSince;
+      setError(`Ya solicitaste un enlace hace poco. Intenta de nuevo en ${wait} s.`);
+      return;
+    }
 
-  try {
-    const res = await sendPasswordRecoveryEmail(recoveryemail);
-    if (!res.success) {
-      // si la API devuelve retryAfter, usarlo
-      const wait = res.retryAfter ?? COOLDOWN_DEFAULT;
-      // guardar timestamp de bloqueo local (ahora + wait s)
-      localStorage.setItem(key, (now).toString()); // guardamos ahora para contar cooldown de cliente
-      setTimeout(() => {
-        localStorage.removeItem(key);
-      }, wait * 1000);
+    setLoading(true);
+    setError(null);
 
-      setError(`No se pudo enviar el correo: ${res.message}. Intenta de nuevo en ${wait} segundos.`);
-    } else {
+    try {
+      const res = await sendPasswordRecoveryEmail(recoveryemail);
+
+      if (!res.success) {
+        const wait = res.retryAfter ?? COOLDOWN_DEFAULT;
+
+        // Solo si hay localStorage real
+        ls?.setItem(key, String(now));
+        setTimeout(() => ls?.removeItem(key), wait * 1000);
+
+        setError(`No se pudo enviar el correo: ${res.message}. Intenta de nuevo en ${wait} segundos.`);
+        return;
+      }
+
       // éxito
-      localStorage.setItem(key, (now).toString());
-      const wait = COOLDOWN_DEFAULT;
-      setTimeout(() => localStorage.removeItem(key), wait * 1000);
+      ls?.setItem(key, String(now));
+      setTimeout(() => ls?.removeItem(key), COOLDOWN_DEFAULT * 1000);
 
-      // mostrar confirmación amigable
-      setError(null);
-      // usa un estado separado para mensaje exitoso
-      // por simplicidad aquí:
       alert('Correo de recuperación enviado. Revisa tu bandeja (y spam).');
       closeModal2();
+    } catch (err) {
+      console.error(err);
+      setError('Ocurrió un error al intentar enviar el correo. Intenta de nuevo más tarde.');
+    } finally {
+      setLoading(false);
     }
-  } catch (err: unknown) {
-    console.error(err);
-    setError('Ocurrió un error al intentar enviar el correo. Intenta de nuevo más tarde.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
 
   return (
-    <div className=" w-screen h-screen bg-white">
+    <div className=" w-screen min-h-screen bg-white">
       <Accessmodal isOpen={isOpen3} onClose={closeModal3}>
         <div className="flex flex-col w-full z-40">
           <div className=' flex w-full justify-center items-center'><p className="text-3xl font-extrabold mb-4 text-black">Lista de servicios</p></div>
@@ -227,10 +289,8 @@ const sendRecoveryHandler = async () => {
             </div>
           </div>
 
-
           <div className=' block sm:hidden overflow-auto max-h-[300]'>
             <div className=" flex flex-row gap-8 sm:px-10 justify-between">
-
               <div className="flex flex-col gap-2 ">
                 {Servicios.map((ser, index) => (
                   <div key={`col1-${index}`} className="flex items-center gap-2">
@@ -239,9 +299,6 @@ const sendRecoveryHandler = async () => {
                   </div>
                 ))}
               </div>
-
-
-
             </div>
           </div>
         </div>
@@ -264,12 +321,10 @@ const sendRecoveryHandler = async () => {
 
         </div>
       </Accessmodal>
+
       <Accessmodal isOpen={isOpen} onClose={closeModal}>
-        {/* Aquí va TODO el contenido del modal */}
         <div className=' flex flex-row w-full sm:gap-10 z-30'>
-
-
-          {<div className="w-full sm:w-1/2 text-center">
+          <div className="w-full sm:w-1/2 text-center">
             <div className={`w-full text-center ${oswald.className}`}>
               <p className="text-2xl font-bold mb-4 text-black">Inicio de sesión</p>
             </div>
@@ -309,34 +364,20 @@ const sendRecoveryHandler = async () => {
               className="mt-4 px-4 py-2 bg-pink-800 text-white rounded hover:bg-pink-700">
               ENTRAR
             </button>
-          </div>}
+          </div>
 
-
-          {<div className=' hidden sm:block  bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-300 w-0 sm:w-1/2 sm:h-64  flex-col justify-center items-center'>
+          <div className=' hidden sm:block  bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-300 w-0 sm:w-1/2 sm:h-64  flex-col justify-center items-center'>
             <div className=' w-full h-full flex justify-center items-center flex-col'>
               <div className=" flex items-center justify-center pt-10  w-full"><Image width={80} height={80} src="/Tendencia.png" alt="Tendencia" /></div>
               <p className="  text-4xl font-extrabold text-black">TENDENCIAS</p>
               <p className="  text-2xl font-bold text-black">Peluqueria</p>
               <div className={cursiva.className}><p className=" pb-7 text-4xl font-light text-black">Belleza confianza y satisfacion</p></div>
             </div>
-
-          </div>}
-
-
-
-
-
-
-
-
+          </div>
         </div>
       </Accessmodal>
 
-
-
-
       <div className="flex h-[10%] w-full">
-        {/* Lado izquierdo con fondo azul */}
         <div className="bg-pink-800 h-full flex flex-row items-center justify-center px-4 gap-2">
           <div className=' w-[30%] h-full flex items-center justify-center'> <Image width={50} height={50} src="/Tendencia.png" alt="Tendencia" /></div>
           <div className=' w-[70%] h-full flex flex-col items-center justify-center'>
@@ -345,16 +386,11 @@ const sendRecoveryHandler = async () => {
           </div>
         </div>
 
-        {/* Centro con fondo rosa que ocupa todo el espacio restante */}
-        <div className="flex-1 bg-pink-800 flex items-center justify-center">
+        <div className="flex-1 bg-pink-800 flex items-center justify-center"></div>
 
-        </div>
-
-        {/* Lado derecho con fondo azul */}
-        <div className="bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 h-full flex items-center justify-center px-4">
+        <div onClick={openModal} className=" cursor-pointer bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 flex items-center justify-center px-4 sm:px-10">
           <p
-            onClick={openModal}
-            className="cursor-pointer text-center font-extrabold text-black"
+            className="text-center font-extrabold text-black"
           >
             Login
           </p>
@@ -363,14 +399,13 @@ const sendRecoveryHandler = async () => {
 
       <div className="bg-white h-[85%] sm:h-[88%] overflow-auto">
         <div className=" text-center w-full">
-
-
           {/*Titulo con imagenes*/}
           <div className=" flex items-center justify-center pt-10  w-full"><Image width={70} height={70} src="/Tendencia.png" alt="Tendencia" /></div>
           <p className="  text-4xl font-extrabold text-black">TENDENCIAS</p>
           <p className="  text-2xl font-bold text-black">Peluqueria</p>
 
           <div className={cursiva.className}><p className=" pb-7 text-4xl font-light text-black">Belleza confianza y satisfacion</p></div>
+
           <div className="flex items-center justify-center relative  h-[400px] lg:h-[450px] w-[100%] bg-gradient-to-r from-gray-400 via-gray-300 to-gray-500   ">
             <div className=" absolute z-0 w-full h-full">
               <Image
@@ -380,23 +415,25 @@ const sendRecoveryHandler = async () => {
                 className="object-cover blur-sm"
               />
             </div>
-            <CarouselComponent media={images} />
-            {/*<Image width="450" height={300} className=' h-full w-[450px]' src="/Imagen1.jpeg" alt="WhatsApp" />*/}
+
+            {mediaLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-black">Cargando medios...</div>
+            ) : (
+              <CarouselComponent media={inicioMedia.length ? inicioMedia : FALLBACK_IMAGES} />
+            )}
           </div>
 
-
-
-
-
           {/*Sobre nosotros*/}
-
           <p className=" pt-20 text-3xl font-extrabold text-pink-600">Sobre nosostros</p>
           <p className=" pb-5 pt-5 px-5 text-black font-bold">En nuestro salón de belleza creemos que cada persona merece un espacio donde pueda sentirse escuchada, cuidada y renovada.</p>
 
           <div className="p-2 bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-400 sm:inline-block sm:w-[500px] rounded-lg">
-            <CarouselComponent media={nosotros} autoSlide={false} />
+            {mediaLoading ? (
+              <div className="text-black">Cargando...</div>
+            ) : (
+              <CarouselComponent media={nosotrosMedia.length ? nosotrosMedia : FALLBACK_NOSOTROS} autoSlide={false} />
+            )}
           </div>
-
 
           {/*Servicios*/}
           <p className=" pt-20 text-3xl font-extrabold text-pink-600">Servicios</p>
@@ -419,7 +456,7 @@ const sendRecoveryHandler = async () => {
               {hasMore && (
                 <div className="w-full flex justify-center mt-4">
                   <button
-                    onClick={openModal3} // define `abrirModal` en el componente
+                    onClick={openModal3}
                     className="text-pink-700 font-bold underline hover:text-pink-900 transition cursor-pointer"
                   >
                     Ver todos los servicios
@@ -442,10 +479,9 @@ const sendRecoveryHandler = async () => {
                 ))}
               </div>
 
-
               <div className="w-full flex justify-center mt-4">
                 <button
-                  onClick={openModal3} // define `abrirModal` en el componente
+                  onClick={openModal3}
                   className="text-pink-700 font-bold underline hover:text-pink-900 transition cursor-pointer"
                 >
                   Ver todos los servicios
@@ -454,15 +490,15 @@ const sendRecoveryHandler = async () => {
             </div>
           </div>
 
-
           {/*Ofertas */}
           <p className=" pt-20 text-3xl font-extrabold text-pink-600">Ofertas Disponibles</p>
           <div className="p-2 ">
-            <CarouselComponent media={Ofertas} height={500} width={400} resize={true} />
+            {mediaLoading ? (
+              <div className="text-black">Cargando...</div>
+            ) : (
+              <CarouselComponent media={ofertasMedia.length ? ofertasMedia : FALLBACK_OFERTAS} height={500} width={400} resize={true} />
+            )}
           </div>
-
-
-
 
           {/*Ubicacion*/}
           <p className="pt-20 text-3xl font-extrabold text-pink-600">Ubicación</p>
@@ -485,7 +521,6 @@ const sendRecoveryHandler = async () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* Primer número */}
               <a
                 href="https://wa.me/573225821810"
                 target="_blank"
@@ -495,18 +530,12 @@ const sendRecoveryHandler = async () => {
                 <Image src="/wsp.png" alt="WhatsApp" width={25} height={25} />
                 +57 323 4920171
               </a>
-
-
             </div>
           </div>
-
-
-
 
           {/* Redes sociales */}
           <p className="pt-10 text-3xl font-extrabold text-pink-600">Síguenos en redes</p>
           <div className="flex justify-center items-center gap-10 pt-6 ">
-            {/* Instagram */}
             <a
               href="https://www.instagram.com/tendencias.cartagena/"
               target="_blank"
@@ -516,7 +545,6 @@ const sendRecoveryHandler = async () => {
               <FaInstagram className="text-white w-8 h-8" />
             </a>
 
-            {/* Facebook */}
             <a
               href="https://www.facebook.com/profile.php?id=61576002494183"
               target="_blank"
@@ -526,7 +554,6 @@ const sendRecoveryHandler = async () => {
               <FaFacebook className="text-white w-8 h-8" />
             </a>
 
-            {/* TikTok */}
             <a
               href="https://www.tiktok.com/@tendencias.peluqu"
               target="_blank"
@@ -537,14 +564,12 @@ const sendRecoveryHandler = async () => {
             </a>
           </div>
 
-
-
           <footer className=" pt-14 pb-5 text-center  text-sm text-gray-500">
             © {currentYear} Tendencia. Todos los derechos reservados.
           </footer>
-
         </div>
       </div>
+
       <div className=" relative">
         <div className=" right-5 bottom-7 absolute">
           <a href="https://wa.me/573225821810" target="_blank" rel="noopener noreferrer">

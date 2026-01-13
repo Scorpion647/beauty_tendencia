@@ -8,19 +8,22 @@ LANGUAGE sql
 SECURITY DEFINER
 AS $$
   SELECT rol
-    FROM public.users
-   WHERE id = uid;
+  FROM public.users
+  WHERE id = uid
+  LIMIT 1;
 $$;
 
 CREATE OR REPLACE FUNCTION public.get_user_created_at(uid uuid)
-RETURNS timestamp with time zone
+RETURNS timestamptz
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
   SELECT created_at
-    FROM public.users
-   WHERE id = uid;
+  FROM public.users
+  WHERE id = uid
+  LIMIT 1;
 $$;
+
 
 
 -- 2) Habilitar y forzar RLS en la tabla
@@ -39,8 +42,13 @@ CREATE POLICY "Insert: solo admin o developer"
   ON public.users
   FOR INSERT
   WITH CHECK (
-    get_user_role(auth.uid()) IN ('admin', 'developer')
+    -- puede insertarse a sí mismo
+    auth.uid() = id
+    -- o si es admin/dev
+    OR get_user_role(auth.uid()) IN ('admin', 'developer')
   );
+
+
 
 DROP POLICY IF EXISTS "Delete: solo admin o developer" ON public.users;
 CREATE POLICY "Delete: solo admin o developer"

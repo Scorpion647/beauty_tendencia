@@ -36,3 +36,6 @@ CREATE TRIGGER set_timestamp
   BEFORE UPDATE ON public.users
   FOR EACH ROW
   EXECUTE PROCEDURE public.update_updated_at_column();
+
+
+

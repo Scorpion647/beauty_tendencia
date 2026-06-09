@@ -581,7 +581,7 @@ export const Sales_records = () => {
                       setValues2([]);
                       setIDusersave("");
                       handleFilterLoans(null);
-                      handleFilter(); // Puedes pasar undefined si lo necesitas así
+                      handleFilter(null);
                     }
                   }}
                   placeholder="Buscar empleado"

@@ -167,17 +167,21 @@ export const Register_sale = () => {
 
     const Make_sales = async () => {
         setcargando(true)
+        setError(null);
         if (!user?.userProfile?.id) {
             setError('No hay usuario autenticado');
+            setcargando(false);
             return;
         }
 
         if (!items.length) {
+            setcargando(false);
             setError('Agrega al menos un ítem antes de finalizar');
             return;
         }
 
         if (!selectedMetodo) {
+            setcargando(false);
             setError('Selecciona un método de pago');
             return;
         }
@@ -189,7 +193,14 @@ export const Register_sale = () => {
                     ? 'transaction'
                     : 'cash';
 
-        const response = await createSaleRecord(values2[0].id, metodo, items);
+        const employeeId = values2[0]?.id || (user.userProfile.rol === "employee" ? user.userProfile.id : "");
+        if (!employeeId) {
+            setError('Selecciona un empleado');
+            setcargando(false);
+            return;
+        }
+
+        const response = await createSaleRecord(employeeId, metodo, items);
 
         if (response.success) {
             setVisible(true);
@@ -198,6 +209,7 @@ export const Register_sale = () => {
             setValues([]);
             setRawPrice('');
             setItems([]);
+            setValues2([]);
             setSelectedEmpleado('');
             setselectedMetodo('');
             setTimeout(() => setVisible(false), 3000);
@@ -210,16 +222,26 @@ export const Register_sale = () => {
     };
 
     const Register_sale_product = async () => {
+        if (!values3[0]?.id || !Number.isFinite(CantP) || CantP <= 0) {
+            setError("Selecciona un producto y una cantidad valida");
+            return;
+        }
+
         try {
             await registrarVentaProducto(values3[0].id, CantP)
             setValues3([])
             setCantP(1)
-        } catch {
-            console.log("Fallo al registrar venta")
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "Fallo al registrar venta")
         }
     }
 
     const opciones = servicios.map((s) => ({ label: s, value: s }));
+    const canAddItem = Cant > 0 && Price > 0 && values.length > 0 && selectedMetodo !== "" && !cargando;
+    const selectedProduct = values3[0];
+    const productUnitPrice = selectedProduct
+        ? selectedProduct.value * (1 - (selectedProduct.descuento ?? 0) / 100)
+        : 0;
 
 
     return (
@@ -262,15 +284,15 @@ export const Register_sale = () => {
                                             <input type="number" value={CantP} onChange={(e) => setCantP(parseInt(e.target.value))} min={1} className=" w-[100%] py-2 pl-2  border text-black border-gray-700 rounded bg-white" placeholder="Cantidad a vender" />
                                             {values3.length > 0 && (
                                                 <div className=" w-full flex flex-col mt-2">
-                                                    <p className="text-gray-700">Valor Unitario: {formatCurrency(values3[0]?.descuento === null ? values3[0]?.value : values3[0]?.value * (values3[0]?.descuento / 100))}</p>
+                                                    <p className="text-gray-700">Valor Unitario: {formatCurrency(productUnitPrice)}</p>
                                                     {values3[0]?.descuento !== null && (
                                                         <p className="text-gray-700">Descuento aplicado: {values3[0]?.descuento}%</p>
                                                     )}
-                                                    <p className=" text-gray-700">Valor Total: {formatCurrency(CantP > 0 ? (CantP * (values3[0]?.descuento === null ? values3[0]?.value : values3[0]?.value * (values3[0]?.descuento / 100))) : 0)}</p>
+                                                    <p className=" text-gray-700">Valor Total: {formatCurrency(CantP > 0 ? CantP * productUnitPrice : 0)}</p>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className=" w-full flex items-center justify-center mt-5"><button onClick={() => { closeModal(); Register_sale_product() }} className=" bg-pink-800 text-amber-300 p-2 rounded">Registrar</button></div>
+                                        <div className=" w-full flex items-center justify-center mt-5"><button disabled={!values3[0]?.id || CantP <= 0} onClick={() => { Register_sale_product(); closeModal(); }} className=" bg-pink-800 text-amber-300 p-2 rounded disabled:bg-gray-700 disabled:text-gray-300">Registrar</button></div>
                                     </Accessmodal>
 
                                     <div className="absolute top-3 left-5">
@@ -487,14 +509,14 @@ export const Register_sale = () => {
                         <div className=" flex flex-row w-[100%] sm:w-[80%] h-[5%] ">
 
                             <div className=" justify-center w-full h-full flex flex-row">
-                                <div className=" text-center  w-[50%] h-full"><button disabled={Cant === 0 || Price === 0 || !values || selectedMetodo === "" || cargando} onClick={() =>
+                                <div className=" text-center  w-[50%] h-full"><button disabled={!canAddItem} onClick={() =>
                                     addItem({
                                         servicio: values[0].value,
                                         cantidad: Cant,
                                         precio: Price,
                                         ganado: (Price * Cant) * 0.5
                                     })
-                                } className={`   rounded-md w-[50%] h-full  font-semibold ${(Cant === 0 || Price === 0 || !values || selectedMetodo === "") ? "bg-gray-700 text-gray-300" : "bg-pink-600 cursor-pointer text-yellow-300"}`}>Agregar</button></div>
+                                } className={`   rounded-md w-[50%] h-full  font-semibold ${!canAddItem ? "bg-gray-700 text-gray-300" : "bg-pink-600 cursor-pointer text-yellow-300"}`}>Agregar</button></div>
                                 <div className="text-center w-[50%] h-full"><button onClick={Make_sales} disabled={items.length === 0 || cargando} className={`  rounded-md w-[50%] h-full font-semibold ${items.length > 0 ? "bg-pink-600 cursor-pointer" : "bg-gray-700 text-gray-300"}`}>Finalizar</button></div>
                             </div>
                         </div>

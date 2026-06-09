@@ -12,7 +12,7 @@ type ServicioItem = {
 };
 
 type SaleRecord = {
-  id: number;
+  id: string;
   sale_code: string;
   payment_method: 'cash' | 'card' | 'transaction';
   total_amount: number;
@@ -22,7 +22,7 @@ type SaleRecord = {
 };
 
 type SalesItemInsert = {
-  sale_id: number;
+  sale_id: string;
   service_name: string;
   service_cost: number;
   employee_earnings: number;
@@ -39,6 +39,8 @@ export async function createSaleRecord(
   error?: PostgrestError | Error;
 }> {
   try {
+    if (!userId) throw new Error('Selecciona un empleado');
+    if (!items.length) throw new Error('Agrega al menos un item');
   
 
   const {

@@ -87,10 +87,10 @@ export async function listSalesSummary(
 ): Promise<UserSalesData[]> {
   // 1. Traer todos los usuarios
   //{ data: users, error: userError }
-  let { data: users } =
+  const { data: usersData, error: userError } =
     await supabase.from("users").select("id, nombres");
-  //if (userError) throw new Error(`Error al obtener usuarios: ${userError.message}`);
-  users = users ?? [];
+  if (userError) throw new Error(`Error al obtener usuarios: ${userError.message}`);
+  const users = usersData ?? [];
 
   // 1.1 Filtrar usuarios si se especifica userId
   const relevantUsers = userId
@@ -99,10 +99,10 @@ export async function listSalesSummary(
 
   // 2. Traer todos los registros de venta
   //{ data: salesRecords, error: salesError }
-  let { data: salesRecords} =
+  const { data: salesRecordsData, error: salesError } =
     await supabase.from("sales_records").select("*");
-  //if (salesError) throw new Error(`Error al obtener ventas: ${salesError.message}`);
-  salesRecords = salesRecords ?? [];
+  if (salesError) throw new Error(`Error al obtener ventas: ${salesError.message}`);
+  let salesRecords = salesRecordsData ?? [];
 
   // 3. Traer todos los ítems de venta
   const { data: salesItems, error: itemsError } =
@@ -126,7 +126,7 @@ export async function listSalesSummary(
       .filter((item) => item.sale_id === zonedSale.id)
       .map((item) => ({
         service_name: item.service_name,
-        service_cost: item.service_cost,
+        service_cost: Number(item.service_cost),
         service_quantity: item.service_quantity,
       })),
   }));
@@ -135,8 +135,8 @@ export async function listSalesSummary(
   const result: UserSalesData[] = relevantUsers.map((user) => {
     const userSales = salesWithItems.filter((zonedSale) => zonedSale.user_id === user.id);
 
-    const total = userSales.reduce((sum, zonedSale) => sum + zonedSale.total_amount, 0);
-    const Ganado = userSales.reduce((sum, zonedSale) => sum + zonedSale.earnings_amount, 0);
+    const total = userSales.reduce((sum, zonedSale) => sum + Number(zonedSale.total_amount), 0);
+    const Ganado = userSales.reduce((sum, zonedSale) => sum + Number(zonedSale.earnings_amount), 0);
 
     return {
       name: user.nombres,
@@ -144,8 +144,8 @@ export async function listSalesSummary(
       Ganado,
       sales_records: userSales.map((zonedSale) => ({
         sale_code: zonedSale.sale_code,
-        total_amount: zonedSale.total_amount,
-        earnings_amount: zonedSale.earnings_amount,
+        total_amount: Number(zonedSale.total_amount),
+        earnings_amount: Number(zonedSale.earnings_amount),
         sale_date: zonedSale.sale_date,
         user_id: zonedSale.user_id,
         payment_method: zonedSale.payment_method,

@@ -1,13 +1,64 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
+
+export interface LoanRecord {
+  id: string;
+  user_id: string;
+  monto: number;
+  tipo_operacion: "prestamo" | "abono";
+  creado_en: string;
+}
+
+type FilterOption = "Dia" | "Semana" | "Mes";
+
+const BOGOTA_UTC_OFFSET = "-05:00";
+
+function toLoanAmount(value: number | string | null): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function addUtcDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function getBogotaDateRange(date: string, filtro: FilterOption) {
+  const selected = new Date(`${date}T00:00:00.000${BOGOTA_UTC_OFFSET}`);
+  const year = selected.getUTCFullYear();
+  const month = selected.getUTCMonth();
+
+  if (filtro === "Semana") {
+    const diffToMonday = (selected.getUTCDay() + 6) % 7;
+    const start = addUtcDays(selected, -diffToMonday);
+    return { start, end: addUtcDays(start, 7) };
+  }
+
+  if (filtro === "Mes") {
+    return {
+      start: new Date(Date.UTC(year, month, 1, 5, 0, 0, 0)),
+      end: new Date(Date.UTC(year, month + 1, 1, 5, 0, 0, 0)),
+    };
+  }
+
+  return { start: selected, end: addUtcDays(selected, 1) };
+}
 
 export async function createLoanRecord(
   userId: string,
   tipo_operacion: "prestamo" | "abono",
   monto: number
 ) {
+  if (!userId) throw new Error("Debes seleccionar un empleado.");
+  if (!Number.isFinite(monto) || monto <= 0) {
+    throw new Error("El monto debe ser mayor a cero.");
+  }
+
   const { data, error } = await supabase
     .from("employee_loans")
-    .insert([{ user_id: userId, tipo_operacion, monto }]);
+    .insert([{ user_id: userId, tipo_operacion, monto }])
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   return data;
@@ -21,24 +72,14 @@ export async function getEmployeeDebt(userId: string): Promise<number> {
 
   if (error) throw new Error(error.message);
 
-  return data.reduce((total: number, record: { tipo_operacion: string; monto: number; }) => {
-    return record.tipo_operacion === "prestamo"
-      ? total + record.monto
-      : total - record.monto;
-  }, 0);
+  return (data ?? []).reduce(
+    (total: number, record: { tipo_operacion: string; monto: number | string }) => {
+      const monto = toLoanAmount(record.monto);
+      return record.tipo_operacion === "prestamo" ? total + monto : total - monto;
+    },
+    0
+  );
 }
-
-
-
-export interface LoanRecord {
-  id: string;
-  user_id: string;
-  monto: number;
-  tipo_operacion: "prestamo" | "abono";
-  creado_en: string;
-}
-
-type FilterOption = "Dia" | "Semana" | "Mes";
 
 export async function getLoanRecords(
   userId?: string,
@@ -54,36 +95,17 @@ export async function getLoanRecords(
     query = query.eq("user_id", userId);
   }
 
-  // Solo aplicar filtros de fecha si date está definido
   if (date) {
-    const selected = new Date(date);
-    const start = new Date(selected);
-    const end = new Date(selected);
-
-    const finalFiltro = filtro || "Dia";
-
-    if (finalFiltro === "Dia") {
-      end.setDate(end.getDate() + 1);
-    } else if (finalFiltro === "Semana") {
-      const day = selected.getDay();
-      const diffToMonday = (day + 6) % 7;
-      start.setDate(start.getDate() - diffToMonday);
-      end.setDate(start.getDate() + 7);
-    } else if (finalFiltro === "Mes") {
-      start.setDate(1);
-      end.setMonth(start.getMonth() + 1);
-      end.setDate(0);
-    }
-
-    query = query
-      .gte("creado_en", start.toISOString())
-      .lt("creado_en", end.toISOString());
+    const { start, end } = getBogotaDateRange(date, filtro || "Dia");
+    query = query.gte("creado_en", start.toISOString()).lt("creado_en", end.toISOString());
   }
 
   const { data, error } = await query;
 
   if (error) throw new Error(error.message);
-  return data as LoanRecord[];
+
+  return (data ?? []).map((record) => ({
+    ...record,
+    monto: toLoanAmount(record.monto as number | string),
+  })) as LoanRecord[];
 }
-
-

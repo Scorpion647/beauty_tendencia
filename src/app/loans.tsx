@@ -15,6 +15,8 @@ export const LoanOrAbono = () => {
   const [monto, setMonto] = useState("");
   const [tipoOperacion, setTipoOperacion] = useState<"prestamo" | "abono">("prestamo");
   const [deudaActual, setDeudaActual] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     listUsers(1, 100).then((data) => {
@@ -40,11 +42,25 @@ export const LoanOrAbono = () => {
   }, [selectedEmpleado]);
 
   const handleSubmit = async () => {
-    if (!selectedEmpleado.length || !monto) return;
-    await createLoanRecord(selectedEmpleado[0].id, tipoOperacion, parseFloat(monto));
-    setMonto("");
-    const deuda = await getEmployeeDebt(selectedEmpleado[0].id);
-    setDeudaActual(deuda);
+    const parsedMonto = Number(monto);
+    if (!selectedEmpleado.length || !Number.isFinite(parsedMonto) || parsedMonto <= 0) {
+      setMessage("Selecciona un empleado y un monto mayor a cero.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage(null);
+      await createLoanRecord(selectedEmpleado[0].id, tipoOperacion, parsedMonto);
+      setMonto("");
+      const deuda = await getEmployeeDebt(selectedEmpleado[0].id);
+      setDeudaActual(deuda);
+      setMessage(tipoOperacion === "prestamo" ? "Prestamo registrado." : "Abono registrado.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo registrar la operacion.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,10 +128,14 @@ export const LoanOrAbono = () => {
           </p>
         </div>
 
+        {message && (
+          <p className="mb-3 text-sm font-semibold text-black">{message}</p>
+        )}
+
         <button
           className="w-full py-2 rounded bg-pink-800 text-yellow-300 font-bold hover:opacity-90 transition"
           onClick={handleSubmit}
-          disabled={selectedEmpleado.length === 0 || !monto}
+          disabled={loading || selectedEmpleado.length === 0 || !monto}
         >
           {tipoOperacion === "prestamo" ? "Registrar Préstamo" : "Registrar Abono"}
         </button>

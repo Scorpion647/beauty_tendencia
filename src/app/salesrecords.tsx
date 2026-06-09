@@ -94,7 +94,7 @@ export function prepareHourlyData(
       return {
         date: new Date(rec.creado_en),
         // Ajusta según tu campo de monto de préstamo
-        value: rec.monto,
+        value: rec.tipo_operacion === "prestamo" ? rec.monto : -rec.monto,
       };
     }
   }
@@ -231,11 +231,10 @@ export function prepareDailyData(
 
 function calcularBalancePrestamos(
   data: LoanRecord[],
-  user: { userProfile?: { rol?: string; id?: string } } | null,
-  selectedEmployee: UserSalesData | null,
-  filtroUserId: string
+  role?: string,
+  filtroUserId?: string
 ): number {
-  const esAdminSinEmpleado = !selectedEmployee && (user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer");
+  const esAdminSinEmpleado = !filtroUserId && (role === "admin" || role === "developer");
 
   const registrosFiltrados = esAdminSinEmpleado
     ? data
@@ -325,7 +324,7 @@ export const Sales_records = () => {
   const closeModal = () => setIsOpen(false);
   const closeModal2 = () => setIsOpen2(false);
 
-  const handleFilter = useCallback(async (id?: string) => {
+  const handleFilter = useCallback(async (id?: string | null) => {
     if (!selectedDate || !selectedOption) return;
 
     let filterType: FilterType = 'today';
@@ -345,7 +344,9 @@ export const Sales_records = () => {
     }
 
     try {
-      const uid = ((user?.userProfile?.rol === "employee" || user?.userProfile?.rol === "guest") ? user?.userProfile?.id : id) || IDusersave || undefined;
+      const uid = ((user?.userProfile?.rol === "employee" || user?.userProfile?.rol === "guest")
+        ? user?.userProfile?.id
+        : id !== undefined ? id ?? undefined : IDusersave) || undefined;
       const summary = await listSalesSummary(filterType, options, uid);
       setData(summary);
       closeModal2();
@@ -354,21 +355,21 @@ export const Sales_records = () => {
     }
   }, [selectedDate, selectedOption, IDusersave, user]);
 
-  const handleFilterLoans = useCallback(async () => {
-    const adaptedUser = user?.userProfile
-      ? { userProfile: { rol: user.userProfile.rol, id: user.userProfile.id } }
-      : null;
+  const handleFilterLoans = useCallback(async (id?: string | null) => {
     try {
-      const uid = values2.length > 0 ? values2[0].id : undefined;
+      const role = user?.userProfile?.rol;
+      const uid = ((role === "employee" || role === "guest")
+        ? user?.userProfile?.id
+        : id !== undefined ? id ?? undefined : values2[0]?.id) || undefined;
       const date = selectedDate;
       const filtro = selectedOption;
       const loanData = await getLoanRecords(uid, date, filtro);
       setLoanRecords(loanData);
-      setDeudaTotal(calcularBalancePrestamos(loanData, adaptedUser, selectedEmployee, user?.userProfile?.id || ''));
+      setDeudaTotal(calcularBalancePrestamos(loanData, role, uid));
     } catch (error) {
       console.error('Error al aplicar el filtro:', error);
     }
-  }, [values2, selectedDate, selectedOption, selectedEmployee, user]);
+  }, [values2, selectedDate, selectedOption, user]);
 
   useEffect(() => {
     const fetchInitial = async () => {
@@ -436,8 +437,18 @@ export const Sales_records = () => {
 
   if (loading || loadingUser) return <div>Cargando...</div>;
 
-  const records = data[0]?.sales_records ?? [];
-  const recordss = loanRecords ?? [];
+  const role = user?.userProfile?.rol;
+  const isAdminLike = role === "admin" || role === "developer";
+  const selectedUserId = values2[0]?.id;
+  const visibleLoanRecords = (loanRecords ?? []).filter((record) => {
+    if (selectedUserId) return record.user_id === selectedUserId;
+    if (isAdminLike) return true;
+    return record.user_id === user?.userProfile?.id;
+  });
+  const records = selectedEmployee
+    ? selectedEmployee.sales_records
+    : data.flatMap((item) => item.sales_records);
+  const recordss = visibleLoanRecords;
 
   const data2 = selectedOption === 'Dia'
     ? prepareHourlyData(records, (user?.userProfile?.rol !== "admin" && user?.userProfile?.rol !== "developer" ))
@@ -448,6 +459,14 @@ export const Sales_records = () => {
     : prepareDailyData(recordss, selectedOption, selectedDate);
 
   const buttons = ['Empleados', 'Prestamos', 'Servicios'];
+  const barChartData = activeButton === "Prestamos"
+    ? processedLoans.filter(item => item.monto !== 0)
+    : data.filter(item => item.total !== 0);
+  const trendData = activeButton === "Prestamos" ? data3 : data2;
+  const shouldShowSummaryBar = isAdminLike && !selectedUserId && activeButton !== "Servicios";
+  const hasChartData = activeButton === "Prestamos"
+    ? visibleLoanRecords.length > 0
+    : records.length > 0 || data.some(item => item.total !== 0);
 
 
 
@@ -462,13 +481,13 @@ export const Sales_records = () => {
       <div className="flex flex-col w-[100%] h-full items-center justify-center">
         <div className="w-full h-full sm:w-[98%] sm:h-[98%] flex flex-col sm:rounded-2xl sm:border bg-pink-200 sm:border-black items-center justify-center">
           <div className='w-full h-[37%] sm:h-[40%]'>
-            {((data.length !== 0 && data.some(item => item.total !== 0))) && (
+            {hasChartData ? (
 
-              (((user?.userProfile?.rol !== "guest" && user?.userProfile?.rol !== "employee" && (user?.userProfile?.rol !== "cashier" ||  activeButton !== "Prestamos")) && IDusersave === "") ? (
+              shouldShowSummaryBar ? (
                 // Si data tiene elementos, muestro el BarChart filtrando totales != 0
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={(activeButton === "Empleados" ? data.filter(item => item.total !== 0) : processedLoans.filter(item => item.monto !== 0))}
+                    data={barChartData}
                     margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
                     barSize={barSize}
                   >
@@ -487,7 +506,7 @@ export const Sales_records = () => {
                       dataKey={activeButton === "Empleados" ? "total" : "monto"}
                       fill="#8884d8"
                       background={{ fill: '#eee' }}
-                      onClick={handleBarClick}
+                      onClick={activeButton === "Empleados" ? handleBarClick : undefined}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -496,7 +515,7 @@ export const Sales_records = () => {
 
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={(activeButton === "Empleados" ? data2 : data3)}
+                    data={trendData}
                     margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -512,10 +531,8 @@ export const Sales_records = () => {
                   </AreaChart>
                 </ResponsiveContainer>
 
-              ))
-
-            )}
-            {(data.length === 0 || data.every(item => item.total === 0)) && (
+              )
+            ) : (
               <div className=' sm:border-b sm:border-black w-full h-full flex justify-center items-center'>
                 <p className=' text-black'>No hay datos que mostrar</p>
               </div>
@@ -523,7 +540,7 @@ export const Sales_records = () => {
           </div>
           <div className=' w-full h-[3%] sm:hidden text-[90%] block border-b border-b-black'>
             {activeButton === "Prestamos" && (
-                <p className=' font-bold  text-black'>{((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
+                <p className=' font-bold  text-black'>{(isAdminLike && !selectedUserId) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
               )}
           </div>
           <div className='w-full h-[60%] flex flex-col'>
@@ -553,19 +570,17 @@ export const Sales_records = () => {
                         empleado.sales_records.some((record) => record.user_id === selectedValue)
                       );
 
-                      if (empleadoConVenta) {
-                        setSelectedEmployee(empleadoConVenta);
-                        setIDusersave(selectedValue);
-                        handleFilter(selectedValue);
-                      } else {
-                        setSelectedEmployee(null);
-                      }
+                      setSelectedEmployee(empleadoConVenta ?? null);
+                      setIDusersave(selectedValue);
+                      handleFilter(selectedValue);
+                      handleFilterLoans(selectedValue);
                     } else {
                       // Este es el caso que reemplaza a onDeselect cuando se borra todo
                       console.log("Deseleccionado desde onChange");
                       setSelectedEmployee(null);
                       setValues2([]);
                       setIDusersave("");
+                      handleFilterLoans(null);
                       handleFilter(); // Puedes pasar undefined si lo necesitas así
                     }
                   }}
@@ -622,7 +637,7 @@ export const Sales_records = () => {
 
               <Button onClick={() => { openModal2(); }} color="pink" className=' w-[10%] max-w-[20px] min-w-[60px] h-[95%] rounded-none '><FaFilter color="white" width={10} height={10} /></Button>
               {activeButton === "Prestamos" && (
-                <p className=' hidden sm:block text-black'>{((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !selectedEmployee) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
+                <p className=' hidden sm:block text-black'>{(isAdminLike && !selectedUserId) ? "Deuda Total de Empleados" : "Deuda Total"}: {formatCurrency(deudaTotal)}</p>
               )}
             </div>
             <div className=' border-t border-t-black h-[88%] overflow-auto w-full flex flex-col '>
@@ -703,12 +718,8 @@ export const Sales_records = () => {
                   <ul className="space-y-1 w-full">
 
                     
-                    {loanRecords.length > 0 ? (
-                      loanRecords.map((record, index) => {
-                        console.log((empleados.find(emp => emp.label === selectedEmployee?.name))?.id)
-                        console.log(values2[0]?.id)
-                        console.log(record.user_id)
-                        if (values2[0]?.id === record.user_id || user?.userProfile?.id === record.user_id || ((user?.userProfile?.rol === "admin" || user?.userProfile?.rol === "developer") && !values2[0])) {
+                    {visibleLoanRecords.length > 0 ? (
+                      visibleLoanRecords.map((record) => {
                           const date = new Date(record.creado_en);
                           const hora = date.toLocaleTimeString('es-ES', {
                             hour: '2-digit',
@@ -719,7 +730,7 @@ export const Sales_records = () => {
 
                           return (
                             <li
-                              key={index}
+                              key={record.id}
                               className="flex justify-between items-center p-3 border rounded w-full bg-gray-100"
                             >
                               <span className="w-[30%] text-[50%] sm:text-[100%] truncate text-black text-sm sm:text-base">
@@ -739,7 +750,6 @@ export const Sales_records = () => {
                             </li>
                             
                           );
-                        }
                       })
 
 
